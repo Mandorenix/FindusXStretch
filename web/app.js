@@ -359,8 +359,69 @@ document.addEventListener("DOMContentLoaded", () => {
         wfContainer.style.width = "100%";
         wfContainer.style.minHeight = "60px";
         
+        const controlsDiv = document.createElement("div");
+        controlsDiv.style.display = "flex";
+        controlsDiv.style.justifyContent = "space-between";
+        controlsDiv.style.marginTop = "10px";
+        
+        const previewBtn = document.createElement("button");
+        previewBtn.className = "btn-secondary";
+        previewBtn.textContent = "▶ Preview";
+        previewBtn.style.padding = "4px 12px";
+        previewBtn.style.fontSize = "0.8rem";
+        previewBtn.style.borderRadius = "var(--btn-radius)";
+        previewBtn.style.border = "none";
+        previewBtn.style.color = "var(--text-main)";
+        previewBtn.style.cursor = "pointer";
+        
+        previewBtn.onclick = (e) => {
+            e.stopPropagation();
+            if (layer.wavesurfer.isPlaying()) {
+                layer.wavesurfer.pause();
+                previewBtn.textContent = "▶ Preview";
+            } else {
+                if (layer.currentRegion) {
+                    layer.currentRegion.play();
+                } else {
+                    layer.wavesurfer.play();
+                }
+                previewBtn.textContent = "⏸ Pause";
+            }
+        };
+        
+        layer.previewBtn = previewBtn;
+        
+        const zoomControls = document.createElement("div");
+        zoomControls.style.display = "flex";
+        zoomControls.style.gap = "5px";
+        
+        const zoomOutBtn = document.createElement("button");
+        zoomOutBtn.className = "btn-secondary";
+        zoomOutBtn.textContent = "-";
+        zoomOutBtn.style.padding = "4px 10px";
+        zoomOutBtn.style.borderRadius = "var(--btn-radius)";
+        zoomOutBtn.style.border = "none";
+        zoomOutBtn.style.color = "var(--text-main)";
+        zoomOutBtn.style.cursor = "pointer";
+        
+        const zoomInBtn = document.createElement("button");
+        zoomInBtn.className = "btn-secondary";
+        zoomInBtn.textContent = "+";
+        zoomInBtn.style.padding = "4px 10px";
+        zoomInBtn.style.borderRadius = "var(--btn-radius)";
+        zoomInBtn.style.border = "none";
+        zoomInBtn.style.color = "var(--text-main)";
+        zoomInBtn.style.cursor = "pointer";
+        
+        zoomControls.appendChild(zoomOutBtn);
+        zoomControls.appendChild(zoomInBtn);
+        
+        controlsDiv.appendChild(previewBtn);
+        controlsDiv.appendChild(zoomControls);
+        
         div.appendChild(header);
         div.appendChild(wfContainer);
+        div.appendChild(controlsDiv);
         
         div.onclick = () => setActiveLayer(layer.id);
         layersContainer.appendChild(div);
@@ -381,6 +442,34 @@ document.addEventListener("DOMContentLoaded", () => {
         layer.wsRegions = layer.wavesurfer.registerPlugin(WaveSurfer.Regions.create());
         layer.wavesurfer.loadBlob(layer.blob);
 
+        let currentZoom = 50;
+        
+        zoomInBtn.onclick = (e) => {
+            e.stopPropagation();
+            currentZoom += 10;
+            if (currentZoom > 1000) currentZoom = 1000;
+            layer.wavesurfer.zoom(currentZoom);
+        };
+        
+        zoomOutBtn.onclick = (e) => {
+            e.stopPropagation();
+            currentZoom -= 10;
+            if (currentZoom < 10) currentZoom = 10;
+            layer.wavesurfer.zoom(currentZoom);
+        };
+
+        wfContainer.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            if (e.deltaY < 0) {
+                currentZoom += 10;
+            } else {
+                currentZoom -= 10;
+            }
+            if (currentZoom < 10) currentZoom = 10;
+            if (currentZoom > 1000) currentZoom = 1000;
+            layer.wavesurfer.zoom(currentZoom);
+        }, { passive: false });
+
         layer.wavesurfer.on('decode', () => {
             layer.wsRegions.clearRegions();
             const regionContent = document.createElement('div');
@@ -397,6 +486,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 start: 0,
                 end: layer.wavesurfer.getDuration(),
                 content: regionContent,
+                color: 'rgba(167, 139, 250, 0.3)',
                 resize: true,
                 drag: true
             });
@@ -410,8 +500,17 @@ document.addEventListener("DOMContentLoaded", () => {
             if (layer.wavesurfer && region === layer.currentRegion) {
                 if (layer.wavesurfer.getCurrentTime() >= region.end - 0.05) {
                     layer.wavesurfer.pause();
+                    if (layer.previewBtn) layer.previewBtn.textContent = "▶ Preview";
                 }
             }
+        });
+
+        layer.wavesurfer.on('pause', () => {
+            if (layer.previewBtn) layer.previewBtn.textContent = "▶ Preview";
+        });
+        
+        layer.wavesurfer.on('finish', () => {
+            if (layer.previewBtn) layer.previewBtn.textContent = "▶ Preview";
         });
     }
 
@@ -441,6 +540,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     } else if (data.type === 'progress') {
                         const pct = Math.round(data.progress * 100);
                         document.getElementById("progressBar").style.width = pct + "%";
+                        statusText.textContent = `Processing Track ${i+1}/${layers.length}: ${layer.name} (${pct}%)`;
                     } else if (data.type === 'DONE') {
                         layer.processedBlob = new Blob([data.wavBytes], { type: 'audio/wav' });
                         resolve();
@@ -537,22 +637,82 @@ document.addEventListener("DOMContentLoaded", () => {
         mixerContainer.innerHTML = '<h3 style="margin-top: 0; margin-bottom: 5px; color: var(--primary); font-size: 1.1rem; text-align: center;">Mixer</h3>';
         
         isInfiniteMix = layers.some(l => l.settings.infiniteMode);
+        
+        function updateMuteSolo() {
+            const anySoloed = layers.some(l => l.isSoloed);
+            layers.forEach(l => {
+                if (l.gainNode) {
+                    if (l.isMuted || (anySoloed && !l.isSoloed)) {
+                        l.gainNode.gain.value = 0;
+                    } else {
+                        l.gainNode.gain.value = l.volume;
+                    }
+                }
+            });
+        }
 
         for (let i = 0; i < layers.length; i++) {
             const layer = layers[i];
+            
+            // Decode blob to AudioBuffer first to get duration
+            if (!layer.audioBuffer) {
+                const arrayBuffer = await layer.processedBlob.arrayBuffer();
+                layer.audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+            }
+            
+            const mins = Math.floor(layer.audioBuffer.duration / 60);
+            const secs = Math.floor(layer.audioBuffer.duration % 60).toString().padStart(2, '0');
+            const durationText = layer.settings.infiniteMode ? "∞ min" : `${mins}:${secs} min`;
             
             // Create mixer row
             const row = document.createElement("div");
             row.style.display = "flex";
             row.style.alignItems = "center";
-            row.style.gap = "10px";
+            row.style.gap = "8px";
+            row.style.flexWrap = "wrap";
             
             const label = document.createElement("span");
             label.textContent = layer.name;
             label.style.flex = "1";
+            label.style.minWidth = "100px";
             label.style.overflow = "hidden";
             label.style.textOverflow = "ellipsis";
             label.style.whiteSpace = "nowrap";
+            label.title = layer.name;
+            
+            const durLabel = document.createElement("span");
+            durLabel.textContent = `(${durationText})`;
+            durLabel.style.color = "var(--text-muted)";
+            durLabel.style.fontSize = "0.8rem";
+            durLabel.style.marginRight = "10px";
+            
+            layer.isMuted = false;
+            layer.isSoloed = false;
+            layer.volume = 0.8;
+            
+            const muteBtn = document.createElement("button");
+            muteBtn.className = "btn-secondary";
+            muteBtn.textContent = "M";
+            muteBtn.style.padding = "4px 8px";
+            muteBtn.style.borderRadius = "4px";
+            muteBtn.style.fontWeight = "bold";
+            muteBtn.onclick = () => {
+                layer.isMuted = !layer.isMuted;
+                muteBtn.style.background = layer.isMuted ? "var(--accent)" : "";
+                updateMuteSolo();
+            };
+            
+            const soloBtn = document.createElement("button");
+            soloBtn.className = "btn-secondary";
+            soloBtn.textContent = "S";
+            soloBtn.style.padding = "4px 8px";
+            soloBtn.style.borderRadius = "4px";
+            soloBtn.style.fontWeight = "bold";
+            soloBtn.onclick = () => {
+                layer.isSoloed = !layer.isSoloed;
+                soloBtn.style.background = layer.isSoloed ? "var(--primary)" : "";
+                updateMuteSolo();
+            };
             
             const volSlider = document.createElement("input");
             volSlider.type = "range";
@@ -561,22 +721,23 @@ document.addEventListener("DOMContentLoaded", () => {
             volSlider.step = "0.01";
             volSlider.value = "0.8"; // Default volume
             volSlider.style.flex = "2";
+            volSlider.style.minWidth = "80px";
             
             layer.gainNode = audioCtx.createGain();
             layer.gainNode.gain.value = 0.8;
             layer.gainNode.connect(masterGain);
             
             volSlider.addEventListener("input", (e) => {
-                layer.gainNode.gain.value = parseFloat(e.target.value);
+                layer.volume = parseFloat(e.target.value);
+                updateMuteSolo();
             });
             
             row.appendChild(label);
+            row.appendChild(durLabel);
+            row.appendChild(muteBtn);
+            row.appendChild(soloBtn);
             row.appendChild(volSlider);
             mixerContainer.appendChild(row);
-            
-            // Decode blob to AudioBuffer
-            const arrayBuffer = await layer.processedBlob.arrayBuffer();
-            layer.audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
         }
         
         if (isInfiniteMix) {
@@ -595,6 +756,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (lfoGainNode) lfoGainNode.gain.value = 0;
         }
 
+        init3DVisualizer();
         drawVisualizer();
         isPlaying = false;
         masterPlayBtn.textContent = "▶ Play All Tracks";
@@ -634,46 +796,273 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Visualizer drawing
-    const visualizerCanvas = document.getElementById("visualizer");
-    const canvasCtx = visualizerCanvas ? visualizerCanvas.getContext("2d") : null;
+    // --- 3D & 2D Visualizer ---
+    const visualizer3dContainer = document.getElementById("visualizer3d");
+    const visualizer2dCanvas = document.getElementById("visualizer2d");
+    const canvas2dCtx = visualizer2dCanvas ? visualizer2dCanvas.getContext("2d") : null;
+    const toggleVisBtn = document.getElementById("toggleVisBtn");
+    
+    let visualizerMode = '3d';
+    let scene, camera, renderer, particles, particleGeometry;
+    let is3DInitialized = false;
+
+    if (toggleVisBtn) {
+        toggleVisBtn.addEventListener('click', () => {
+            if (visualizerMode === '3d') {
+                visualizerMode = '2d';
+                visualizer3dContainer.style.display = 'none';
+                visualizer2dCanvas.style.display = 'block';
+                toggleVisBtn.textContent = 'Switch to 3D';
+            } else {
+                visualizerMode = '3d';
+                visualizer3dContainer.style.display = 'block';
+                visualizer2dCanvas.style.display = 'none';
+                toggleVisBtn.textContent = 'Switch to 2D';
+            }
+        });
+    }
+
+    function init3DVisualizer() {
+        if (is3DInitialized || !visualizer3dContainer) return;
+        
+        scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x000000, 0.005);
+        
+        const width = visualizer3dContainer.clientWidth || 400;
+        const height = visualizer3dContainer.clientHeight || 150;
+        
+        camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+        camera.position.z = 100;
+        
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(width, height);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        visualizer3dContainer.appendChild(renderer.domElement);
+        
+        const particleCount = 2000;
+        particleGeometry = new THREE.BufferGeometry();
+        const positions = new Float32Array(particleCount * 3);
+        
+        for(let i = 0; i < particleCount; i++) {
+            const r = 10 + Math.random() * 70;
+            const theta = Math.random() * 2 * Math.PI;
+            const phi = Math.acos(2 * Math.random() - 1);
+            
+            positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+            positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+            positions[i * 3 + 2] = r * Math.cos(phi);
+        }
+        
+        particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        
+        const style = getComputedStyle(document.documentElement);
+        const primaryColorHex = style.getPropertyValue('--primary').trim() || '#a78bfa';
+        
+        const particleMaterial = new THREE.PointsMaterial({
+            color: new THREE.Color(primaryColorHex),
+            size: 2.0,
+            transparent: true,
+            opacity: 0.8,
+            blending: THREE.AdditiveBlending
+        });
+        
+        particles = new THREE.Points(particleGeometry, particleMaterial);
+        scene.add(particles);
+        
+        is3DInitialized = true;
+        
+        window.addEventListener('resize', () => {
+            if (visualizer3dContainer.clientWidth > 0) {
+                const w = visualizer3dContainer.clientWidth;
+                const h = visualizer3dContainer.clientHeight || 150;
+                camera.aspect = w / h;
+                camera.updateProjectionMatrix();
+                renderer.setSize(w, h);
+            }
+        });
+    }
 
     function drawVisualizer() {
         requestAnimationFrame(drawVisualizer);
-        if (!visualizerCanvas || !canvasCtx || !analyser) return;
+        if (!analyser) return;
 
         const bufferLength = analyser.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
         analyser.getByteFrequencyData(dataArray);
 
-        canvasCtx.clearRect(0, 0, visualizerCanvas.width, visualizerCanvas.height);
-
         const style = getComputedStyle(document.documentElement);
-        const primaryColor = style.getPropertyValue('--primary').trim() || '#a78bfa';
+        const primaryColorHex = style.getPropertyValue('--primary').trim() || '#a78bfa';
 
-        const barWidth = (visualizerCanvas.width / bufferLength) * 2;
-        let x = 0;
+        if (visualizerMode === '3d' && is3DInitialized) {
+            let sum = 0;
+            for(let i = 0; i < bufferLength; i++) {
+                sum += dataArray[i];
+            }
+            const avgFreq = sum / bufferLength;
+            const intensity = avgFreq / 255.0;
 
-        for(let i = 0; i < bufferLength; i++) {
-            const barHeight = dataArray[i] / 2;
+            particles.rotation.y += 0.001 + (intensity * 0.01);
+            particles.rotation.x += 0.0005 + (intensity * 0.005);
             
-            canvasCtx.fillStyle = primaryColor;
-            canvasCtx.shadowBlur = 10;
-            canvasCtx.shadowColor = primaryColor;
+            const scale = 1.0 + (intensity * 0.6);
+            particles.scale.set(scale, scale, scale);
             
-            const y = (visualizerCanvas.height - barHeight) / 2;
-            canvasCtx.fillRect(x, y, barWidth - 1, barHeight);
+            particles.material.color.set(primaryColorHex);
+            particles.material.opacity = 0.4 + (intensity * 0.6);
 
-            x += barWidth;
+            renderer.render(scene, camera);
+        } else if (visualizerMode === '2d' && canvas2dCtx) {
+            canvas2dCtx.clearRect(0, 0, visualizer2dCanvas.width, visualizer2dCanvas.height);
+
+            const barWidth = (visualizer2dCanvas.width / bufferLength) * 2;
+            let x = 0;
+
+            for(let i = 0; i < bufferLength; i++) {
+                const barHeight = (dataArray[i] / 255.0) * visualizer2dCanvas.height;
+                
+                canvas2dCtx.fillStyle = primaryColorHex;
+                canvas2dCtx.shadowBlur = 10;
+                canvas2dCtx.shadowColor = primaryColorHex;
+                
+                const y = (visualizer2dCanvas.height - barHeight) / 2;
+                canvas2dCtx.fillRect(x, y, barWidth - 1, barHeight);
+
+                x += barWidth;
+            }
         }
     }
 
-    downloadBtn.addEventListener("click", () => {
-        alert("Downloading a multi-track mix is not fully supported yet in this version. You can only download single tracks.");
+    function audioBufferToWav(buffer) {
+        let numOfChan = buffer.numberOfChannels,
+            length = buffer.length * numOfChan * 2 + 44,
+            bufferArray = new ArrayBuffer(length),
+            view = new DataView(bufferArray),
+            channels = [], i, sample,
+            offset = 0,
+            pos = 0;
+
+        setUint32(0x46464952); // "RIFF"
+        setUint32(length - 8); // file length - 8
+        setUint32(0x45564157); // "WAVE"
+        setUint32(0x20746d66); // "fmt " chunk
+        setUint32(16); // length = 16
+        setUint16(1); // PCM (uncompressed)
+        setUint16(numOfChan);
+        setUint32(buffer.sampleRate);
+        setUint32(buffer.sampleRate * 2 * numOfChan); // avg. bytes/sec
+        setUint16(numOfChan * 2); // block-align
+        setUint16(16); // 16-bit
+
+        setUint32(0x61746164); // "data" - chunk
+        setUint32(length - pos - 4); // chunk length
+
+        for(i = 0; i < buffer.numberOfChannels; i++)
+            channels.push(buffer.getChannelData(i));
+
+        while(pos < buffer.length) {
+            for(i = 0; i < numOfChan; i++) {
+                sample = Math.max(-1, Math.min(1, channels[i][pos])); // clamp
+                sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767)|0; // scale
+                view.setInt16(offset, sample, true); // write 16-bit
+                offset += 2;
+            }
+            pos++;
+        }
+
+        return new Blob([bufferArray], {type: "audio/wav"});
+
+        function setUint16(data) {
+            view.setUint16(offset, data, true);
+            offset += 2;
+        }
+
+        function setUint32(data) {
+            view.setUint32(offset, data, true);
+            offset += 4;
+        }
+    }
+
+    downloadBtn.addEventListener("click", async () => {
+        if (layers.length === 0 || !layers[0].audioBuffer) return;
+        
+        const prevText = downloadBtn.innerHTML;
+        downloadBtn.textContent = "Rendering Mix (Please Wait)...";
+        downloadBtn.disabled = true;
+
+        try {
+            let maxDuration = 0;
+            layers.forEach(l => {
+                if (l.audioBuffer && l.audioBuffer.duration > maxDuration) {
+                    maxDuration = l.audioBuffer.duration;
+                }
+            });
+            
+            const sampleRate = layers[0].audioBuffer.sampleRate;
+            const offlineCtx = new OfflineAudioContext(2, sampleRate * maxDuration, sampleRate);
+            
+            const offlineMasterGain = offlineCtx.createGain();
+            const offlineFilter = offlineCtx.createBiquadFilter();
+            offlineFilter.type = "lowpass";
+            
+            offlineMasterGain.connect(offlineFilter);
+            offlineFilter.connect(offlineCtx.destination);
+            
+            layers.forEach(l => {
+                if (l.audioBuffer) {
+                    const source = offlineCtx.createBufferSource();
+                    source.buffer = l.audioBuffer;
+                    source.loop = l.settings.infiniteMode;
+                    
+                    const gainNode = offlineCtx.createGain();
+                    
+                    const anySoloed = layers.some(lr => lr.isSoloed);
+                    if (l.isMuted || (anySoloed && !l.isSoloed)) {
+                        gainNode.gain.value = 0;
+                    } else {
+                        gainNode.gain.value = l.volume !== undefined ? l.volume : l.gainNode.gain.value;
+                    }
+                    
+                    source.connect(gainNode);
+                    gainNode.connect(offlineMasterGain);
+                    
+                    source.start(0);
+                }
+            });
+            
+            if (isInfiniteMix) {
+                offlineFilter.frequency.value = 2500;
+                const offlineLfo = offlineCtx.createOscillator();
+                offlineLfo.type = 'sine';
+                offlineLfo.frequency.value = 1 / 90;
+                const offlineLfoGain = offlineCtx.createGain();
+                offlineLfoGain.gain.value = 3500;
+                offlineLfo.connect(offlineLfoGain);
+                offlineLfoGain.connect(offlineFilter.detune);
+                offlineLfo.start();
+            } else {
+                offlineFilter.frequency.value = 22000;
+            }
+            
+            const renderedBuffer = await offlineCtx.startRendering();
+            const wavBlob = audioBufferToWav(renderedBuffer);
+            
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(wavBlob);
+            a.download = "Findus_Multitrack_Mix.wav";
+            a.click();
+            
+        } catch (err) {
+            console.error(err);
+            alert("Error rendering mix: " + err.message);
+        }
+        
+        downloadBtn.innerHTML = prevText;
+        downloadBtn.disabled = false;
     });
 
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js')
             .catch(err => console.log('SW registration failed', err));
+
     }
 });

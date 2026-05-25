@@ -177,8 +177,8 @@ if exist "%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe" (
     echo %CLR_INFO%   Inno:%CLR_RESET%      %CLR_WARN%Inno Setup missing%CLR_RESET%
 )
 echo.
-echo %CLR_MENU%   [1]%CLR_RESET% Start app
-echo %CLR_MENU%   [2]%CLR_RESET% Quick start ^(install + tests + app^)
+echo %CLR_MENU%   [1]%CLR_RESET% Start Web App (FindusXStretch)
+echo %CLR_MENU%   [2]%CLR_RESET% Quick start ^(install + tests + old app^)
 echo %CLR_MENU%   [3]%CLR_RESET% Install dependencies
 echo %CLR_MENU%   [4]%CLR_RESET% Install recommended extras
 echo %CLR_MENU%   [5]%CLR_RESET% Run tests
@@ -245,10 +245,11 @@ goto menu
 :run_app
 call :set_python
 echo.
-echo %CLR_INFO%Startar appen...%CLR_RESET%
-%PYTHON_CMD% app.py
+echo %CLR_INFO%Startar FindusXStretch Web App...%CLR_RESET%
+start cmd /k "cd web & %PYTHON_CMD% -m http.server 8000"
+timeout /t 2 >nul
+start http://localhost:8000
 echo.
-pause
 goto menu
 
 :quick_start
@@ -520,7 +521,7 @@ echo %CLR_TITLE% ===============================================================
 echo %CLR_TITLE%                           Option Guide                                %CLR_RESET%
 echo %CLR_TITLE% ==================================================================== %CLR_RESET%
 echo.
-echo %CLR_MENU% [1] Start app %CLR_RESET%- Opens the app directly.
+echo %CLR_MENU% [1] Start app %CLR_RESET%- Opens the new Web App (PWA) in your browser.
 echo %CLR_MENU% [2] Quick start %CLR_RESET%- Installs base packages, runs tests, and starts the app.
 echo %CLR_MENU% [3] Install dependencies %CLR_RESET%- Installs what is needed to develop and run the app.
 echo %CLR_MENU% [4] Install recommended extras %CLR_RESET%- Installs extra tools for build and release tasks.

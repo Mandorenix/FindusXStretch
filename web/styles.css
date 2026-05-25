@@ -459,13 +459,13 @@ input:checked + .switch-slider:before {
 }
 
 /* Custom Wavesurfer Region Drag Handles */
-#waveform ::part(region) {
+::part(region) {
   touch-action: none !important; /* Fixes mobile page scroll when dragging */
   background-color: color-mix(in srgb, var(--primary) 30%, transparent) !important;
 }
 
-#waveform ::part(region-handle-left),
-#waveform ::part(region-handle-right) {
+::part(region-handle-left),
+::part(region-handle-right) {
   width: 24px !important;
   background-color: color-mix(in srgb, var(--primary) 60%, transparent) !important;
   border: 2px solid var(--accent) !important;
@@ -474,8 +474,8 @@ input:checked + .switch-slider:before {
   transition: background-color 0.2s;
 }
 
-#waveform ::part(region-handle-left):hover,
-#waveform ::part(region-handle-right):hover {
+::part(region-handle-left):hover,
+::part(region-handle-right):hover {
   background-color: var(--primary) !important;
 }
 

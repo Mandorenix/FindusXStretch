@@ -79,8 +79,8 @@ class Launcher(tk.Tk):
         # Create Buttons in Left Column
         categories = {
             "🚀 Start & Dev": [
-                ("Start App", self.run_app, "Startar FINDUS>x<STRETCHING i bakgrunden utan en CMD-ruta."),
-                ("Start PWA (Light)", self.start_pwa, "Startar en lokal webbserver för mobila PWA-versionen och öppnar i webbläsaren."),
+                ("Start FindusXStretch (Web)", self.run_app, "Startar den nya webbaserade (PWA) versionen av FindusXStretch i din webbläsare."),
+                ("Start Legacy App (Desktop)", self.run_legacy_app, "Startar den gamla Python Desktop-appen (Deprecated)."),
                 ("Deploy PWA (Upload)", self.deploy_pwa, "Laddar upp dina senaste ändringar till webben så de uppdateras på mobilen."),
                 ("Quick Start", self.quick_start, "Installerar bas-tillägg, kör tester och startar sedan appen."),
                 ("Python REPL", self.python_repl, "Öppnar en ren Python-tolk i ett nytt fönster för snabba tester."),
@@ -275,19 +275,19 @@ class Launcher(tk.Tk):
         threading.Thread(target=task, daemon=True).start()
 
     def run_app(self):
-        self.log(f"> Starting app...")
-        subprocess.Popen(f'"{self.python_cmd}" app.py', shell=True)
-
-    def start_pwa(self):
-        self.log(f"> Starting PWA local server...")
+        self.log(f"> Starting FindusXStretch Web App...")
         import webbrowser
         os.system(f"start cmd /c \"cd web && \"{self.python_cmd}\" -m http.server 8000\"")
         def open_browser():
             import time
             time.sleep(1)
             webbrowser.open("http://localhost:8000")
-            self.after(0, self.log, "[Browser opened for PWA]")
+            self.after(0, self.log, "[Browser opened for FindusXStretch]")
         threading.Thread(target=open_browser, daemon=True).start()
+
+    def run_legacy_app(self):
+        self.log(f"> Starting legacy desktop app...")
+        subprocess.Popen(f'"{self.python_cmd}" app.py', shell=True)
 
     def deploy_pwa(self):
         self.log("> Deploying PWA to GitHub / Netlify...")
