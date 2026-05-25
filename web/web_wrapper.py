@@ -17,11 +17,11 @@ def process_audio(wav_bytes_js, stretch_factor, effects_json, window_size=8192, 
         
     # Normalize if it's integer
     if audio_data.dtype == np.int16:
-        audio_data = audio_data.astype(np.float64) / 32768.0
+        audio_data = audio_data.astype(np.float32) / 32768.0
     elif audio_data.dtype == np.int32:
-        audio_data = audio_data.astype(np.float64) / 2147483648.0
-    elif audio_data.dtype == np.float32:
-        audio_data = audio_data.astype(np.float64)
+        audio_data = audio_data.astype(np.float32) / 2147483648.0
+    elif audio_data.dtype == np.float64:
+        audio_data = audio_data.astype(np.float32)
         
     # Crop audio
     start_idx = int(region_start * sample_rate)

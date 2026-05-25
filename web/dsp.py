@@ -112,7 +112,7 @@ def paulstretch_channel(
     if stretch_factor <= 1.0:
         raise ValueError("stretch_factor must be greater than 1.0.")
 
-    samples = np.asarray(channel, dtype=np.float64).reshape(-1)
+    samples = np.asarray(channel, dtype=np.float32).reshape(-1)
     if samples.size == 0:
         raise ValueError("Input audio is empty.")
 
@@ -124,8 +124,8 @@ def paulstretch_channel(
     frame_count = max(1, int(np.ceil(max_start / input_hop)) + 1)
 
     output_length = settings.window_size + synthesis_hop * max(frame_count - 1, 0)
-    output = np.zeros(output_length, dtype=np.float64)
-    window_norm = np.zeros(output_length, dtype=np.float64)
+    output = np.zeros(output_length, dtype=np.float32)
+    window_norm = np.zeros(output_length, dtype=np.float32)
     rng = np.random.default_rng(settings.random_seed)
 
     for frame_index in range(frame_count):
@@ -160,7 +160,7 @@ def paulstretch_audio(
     if settings is None:
         settings = StretchSettings()
 
-    array = np.asarray(audio, dtype=np.float64)
+    array = np.asarray(audio, dtype=np.float32)
     if array.ndim == 1:
         return paulstretch_channel(
             array,
@@ -199,10 +199,56 @@ def apply_effects(
     *,
     normalize_output: bool = True,
 ) -> np.ndarray:
-    dry = np.asarray(audio, dtype=np.float64)
+    dry = np.asarray(audio, dtype=np.float32)
     if dry.size == 0:
         return dry.copy()
 
+    # Block processing for large files to save memory and prevent browser crashes
+    chunk_size = sample_rate * 15  # 15 seconds
+    if dry.shape[0] <= chunk_size * 1.5:
+        out = _apply_effects_internal(dry, sample_rate, effects, random_seed)
+    else:
+        overlap = sample_rate * 3  # 3 seconds crossfade
+        step = chunk_size - overlap
+        
+        out = np.zeros_like(dry, dtype=np.float32)
+        window_in = np.linspace(0.0, 1.0, overlap, dtype=np.float32)
+        window_out = np.linspace(1.0, 0.0, overlap, dtype=np.float32)
+        if dry.ndim == 2:
+            window_in = window_in[:, None]
+            window_out = window_out[:, None]
+
+        for start in range(0, dry.shape[0], step):
+            end = min(start + chunk_size, dry.shape[0])
+            chunk = dry[start:end]
+            
+            processed_chunk = _apply_effects_internal(
+                chunk, sample_rate, effects, random_seed
+            )
+            
+            # Apply crossfade windowing
+            if start > 0:
+                fade_len = min(overlap, processed_chunk.shape[0])
+                processed_chunk[:fade_len] *= window_in[:fade_len]
+            
+            if end < dry.shape[0]:
+                fade_len = min(overlap, processed_chunk.shape[0])
+                processed_chunk[-fade_len:] *= window_out[-fade_len:]
+                
+            out[start:end] += processed_chunk
+
+    if effects.reverse:
+        out = reverse_audio(out)
+
+    return _normalize_if_needed(out, normalize_output)
+
+
+def _apply_effects_internal(
+    dry: np.ndarray,
+    sample_rate: int,
+    effects: EffectSettings,
+    random_seed: int | None = None,
+) -> np.ndarray:
     filter_mode = effects.filter_mode if effects.filter_enabled else FilterMode.OFF
     wet = apply_filter(dry, sample_rate, filter_mode, effects.lowpass_hz)
     wet = apply_drive(wet, effects.drive_amount if effects.drive_enabled else 0.0)
@@ -241,14 +287,13 @@ def apply_effects(
     wet = apply_motion(wet, sample_rate, effects.motion_amount if effects.motion_enabled else 0.0)
     wet = apply_autopan(wet, sample_rate, effects.autopan_amount if effects.autopan_enabled else 0.0)
     wet = apply_stereo_width(wet, effects.stereo_width)
-    if effects.reverse:
-        wet = reverse_audio(wet)
+    
     mix = float(np.clip(effects.wet_dry, 0.0, 1.0))
     if mix <= 0.0:
-        return _normalize_if_needed(dry, normalize_output)
+        return dry.copy()
     if mix >= 1.0:
-        return _normalize_if_needed(wet, normalize_output)
-    return _normalize_if_needed((dry * (1.0 - mix)) + (wet * mix), normalize_output)
+        return wet
+    return (dry * (1.0 - mix)) + (wet * mix)
 
 
 def freeze_source(
@@ -256,7 +301,7 @@ def freeze_source(
     target_frames: int,
     random_seed: int | None = None,
 ) -> np.ndarray:
-    array = np.asarray(audio, dtype=np.float64)
+    array = np.asarray(audio, dtype=np.float32)
     if array.ndim == 1:
         array = array[:, None]
     if array.shape[0] == 0:
@@ -268,7 +313,7 @@ def freeze_source(
     window = windows.hann(min(max(64, array.shape[0]), 2048), sym=False)
     fade_size = min(window.shape[0] // 2, max(16, array.shape[0] // 4))
     rng = np.random.default_rng(random_seed)
-    out = np.zeros((target_frames, array.shape[1]), dtype=np.float64)
+    out = np.zeros((target_frames, array.shape[1]), dtype=np.float32)
     position = 0
     while position < target_frames:
         chunk = array.copy()
@@ -292,7 +337,7 @@ def freeze_source(
 
 
 def apply_filter(audio: np.ndarray, sample_rate: int, mode: FilterMode | str, cutoff_hz: float) -> np.ndarray:
-    array = np.asarray(audio, dtype=np.float64)
+    array = np.asarray(audio, dtype=np.float32)
     filter_mode = _coerce_filter_mode(mode)
     if filter_mode == FilterMode.OFF:
         return array.copy()
@@ -320,7 +365,7 @@ def apply_lowpass(audio: np.ndarray, sample_rate: int, cutoff_hz: float) -> np.n
 
 
 def apply_drive(audio: np.ndarray, amount: float) -> np.ndarray:
-    array = np.asarray(audio, dtype=np.float64)
+    array = np.asarray(audio, dtype=np.float32)
     mix = float(np.clip(amount, 0.0, 1.0))
     if mix <= 0.0:
         return array.copy()
@@ -330,7 +375,7 @@ def apply_drive(audio: np.ndarray, amount: float) -> np.ndarray:
 
 
 def apply_chorus(audio: np.ndarray, sample_rate: int, amount: float) -> np.ndarray:
-    array = np.asarray(audio, dtype=np.float64)
+    array = np.asarray(audio, dtype=np.float32)
     mix = float(np.clip(amount, 0.0, 1.0))
     if mix <= 0.0:
         return array.copy()
@@ -359,7 +404,7 @@ def apply_chorus(audio: np.ndarray, sample_rate: int, amount: float) -> np.ndarr
 
 
 def apply_pitch_drift(audio: np.ndarray, sample_rate: int, amount: float) -> np.ndarray:
-    array = np.asarray(audio, dtype=np.float64)
+    array = np.asarray(audio, dtype=np.float32)
     mix = float(np.clip(amount, 0.0, 1.0))
     if mix <= 0.0 or array.shape[0] < 16:
         return array.copy()
@@ -388,7 +433,7 @@ def apply_texture(
     amount: float,
     random_seed: int | None = None,
 ) -> np.ndarray:
-    array = np.asarray(audio, dtype=np.float64)
+    array = np.asarray(audio, dtype=np.float32)
     mix = float(np.clip(amount, 0.0, 1.0))
     if mix <= 0.0 or array.shape[0] < 64:
         return array.copy()
@@ -407,7 +452,7 @@ def apply_granular_smear(
     amount: float,
     random_seed: int | None = None,
 ) -> np.ndarray:
-    array = np.asarray(audio, dtype=np.float64)
+    array = np.asarray(audio, dtype=np.float32)
     mix = float(np.clip(amount, 0.0, 1.0))
     if mix <= 0.0 or array.shape[0] < 64:
         return array.copy()
@@ -417,8 +462,8 @@ def apply_granular_smear(
     jitter = max(2, int(grain_size * (0.12 + 0.18 * mix)))
     window = windows.hann(grain_size, sym=False)
     rng = np.random.default_rng(random_seed)
-    wet = np.zeros_like(array, dtype=np.float64)
-    norm = np.zeros(array.shape[0], dtype=np.float64)
+    wet = np.zeros_like(array, dtype=np.float32)
+    norm = np.zeros(array.shape[0], dtype=np.float32)
 
     limit = max(1, array.shape[0] - grain_size)
     if array.ndim == 1:
@@ -447,7 +492,7 @@ def apply_bloom(
     amount: float,
     random_seed: int | None = None,
 ) -> np.ndarray:
-    array = np.asarray(audio, dtype=np.float64)
+    array = np.asarray(audio, dtype=np.float32)
     mix = float(np.clip(amount, 0.0, 1.0))
     if mix <= 0.0:
         return array.copy()
@@ -459,7 +504,7 @@ def apply_bloom(
 
 
 def apply_motion(audio: np.ndarray, sample_rate: int, amount: float) -> np.ndarray:
-    array = np.asarray(audio, dtype=np.float64)
+    array = np.asarray(audio, dtype=np.float32)
     mix = float(np.clip(amount, 0.0, 1.0))
     if mix <= 0.0:
         return array.copy()
@@ -478,7 +523,7 @@ def apply_motion(audio: np.ndarray, sample_rate: int, amount: float) -> np.ndarr
 
 
 def apply_autopan(audio: np.ndarray, sample_rate: int, amount: float) -> np.ndarray:
-    array = np.asarray(audio, dtype=np.float64)
+    array = np.asarray(audio, dtype=np.float32)
     mix = float(np.clip(amount, 0.0, 1.0))
     if mix <= 0.0:
         return array.copy()
@@ -508,7 +553,7 @@ def apply_reverb(
     amount: float,
     random_seed: int | None = None,
 ) -> np.ndarray:
-    array = np.asarray(audio, dtype=np.float64)
+    array = np.asarray(audio, dtype=np.float32)
     mix = float(np.clip(amount, 0.0, 1.0))
     if mix <= 0.0:
         return array.copy()
@@ -533,7 +578,7 @@ def apply_reverb(
 
 
 def apply_shimmer(audio: np.ndarray, sample_rate: int, amount: float) -> np.ndarray:
-    array = np.asarray(audio, dtype=np.float64)
+    array = np.asarray(audio, dtype=np.float32)
     mix = float(np.clip(amount, 0.0, 1.0))
     if mix <= 0.0:
         return array.copy()
@@ -548,7 +593,7 @@ def apply_shimmer(audio: np.ndarray, sample_rate: int, amount: float) -> np.ndar
 
 
 def apply_delay(audio: np.ndarray, sample_rate: int, amount: float) -> np.ndarray:
-    array = np.asarray(audio, dtype=np.float64)
+    array = np.asarray(audio, dtype=np.float32)
     mix = float(np.clip(amount, 0.0, 1.0))
     if mix <= 0.0:
         return array.copy()
@@ -570,7 +615,7 @@ def apply_delay(audio: np.ndarray, sample_rate: int, amount: float) -> np.ndarra
 
 
 def apply_stereo_width(audio: np.ndarray, width: float) -> np.ndarray:
-    array = np.asarray(audio, dtype=np.float64)
+    array = np.asarray(audio, dtype=np.float32)
     if array.ndim != 2 or array.shape[1] < 2:
         return array.copy()
     amount = float(np.clip(width, 0.0, 2.0))
@@ -581,12 +626,12 @@ def apply_stereo_width(audio: np.ndarray, width: float) -> np.ndarray:
 
 
 def reverse_audio(audio: np.ndarray) -> np.ndarray:
-    array = np.asarray(audio, dtype=np.float64)
+    array = np.asarray(audio, dtype=np.float32)
     return np.flip(array, axis=0).copy()
 
 
 def apply_input_gain(audio: np.ndarray, gain_db: float) -> np.ndarray:
-    array = np.asarray(audio, dtype=np.float64)
+    array = np.asarray(audio, dtype=np.float32)
     gain = float(gain_db)
     if abs(gain) <= 1e-9:
         return array.copy()
@@ -597,7 +642,7 @@ def apply_safety_limiter(
     audio: np.ndarray,
     ceiling_db: float = SAFETY_LIMITER_CEILING_DB,
 ) -> np.ndarray:
-    array = np.asarray(audio, dtype=np.float64)
+    array = np.asarray(audio, dtype=np.float32)
     if array.size == 0:
         return array.copy()
     threshold = float(np.clip(10.0 ** (ceiling_db / 20.0), 1e-4, 1.0))
@@ -612,7 +657,7 @@ def build_loop_crossfade_audio(
     sample_rate: int,
     crossfade_ms: float,
 ) -> np.ndarray:
-    array = np.asarray(audio, dtype=np.float64)
+    array = np.asarray(audio, dtype=np.float32)
     if array.size == 0:
         return array.copy()
     crossfade_frames = int(round((max(0.0, float(crossfade_ms)) / 1000.0) * max(1, sample_rate)))
@@ -625,7 +670,7 @@ def build_loop_crossfade_audio(
     head = array[:crossfade_frames]
     tail = array[-crossfade_frames:]
     wrapped_head = np.concatenate([head[1:], head[:1]], axis=0)
-    fade_out = np.linspace(1.0, 0.0, crossfade_frames, endpoint=True, dtype=np.float64)
+    fade_out = np.linspace(1.0, 0.0, crossfade_frames, endpoint=True, dtype=np.float32)
     fade_in = 1.0 - fade_out
 
     if array.ndim == 1:
@@ -637,7 +682,7 @@ def build_loop_crossfade_audio(
 
 
 def normalize_audio(audio: np.ndarray, clip_level: float = 0.98) -> np.ndarray:
-    array = np.asarray(audio, dtype=np.float64)
+    array = np.asarray(audio, dtype=np.float32)
     peak = np.max(np.abs(array)) if array.size else 0.0
     if peak <= 1e-12:
         return array
@@ -645,7 +690,7 @@ def normalize_audio(audio: np.ndarray, clip_level: float = 0.98) -> np.ndarray:
 
 
 def _normalize_if_needed(audio: np.ndarray, normalize_output: bool) -> np.ndarray:
-    array = np.asarray(audio, dtype=np.float64)
+    array = np.asarray(audio, dtype=np.float32)
     if not normalize_output:
         return array.copy()
     return normalize_audio(array)
@@ -659,7 +704,7 @@ def _octave_up(channel: np.ndarray) -> np.ndarray:
 
 def _pad_audio(audio: np.ndarray, window_size: int) -> np.ndarray:
     total_size = max(audio.size, window_size) + window_size
-    padded = np.zeros(total_size, dtype=np.float64)
+    padded = np.zeros(total_size, dtype=np.float32)
     padded[: audio.size] = audio
     return padded
 
@@ -669,7 +714,7 @@ def _fractional_window(audio: np.ndarray, start: float, window_size: int) -> np.
     frac = start - base
     frame = audio[base : base + window_size + 1]
     if frame.shape[0] < window_size + 1:
-        padded = np.zeros(window_size + 1, dtype=np.float64)
+        padded = np.zeros(window_size + 1, dtype=np.float32)
         padded[: frame.shape[0]] = frame
         frame = padded
     if frac <= 1e-12:
@@ -709,7 +754,7 @@ def _modulated_delay(
         end = min(i + block_size, channel.shape[0])
         phase_chunk = phase_seconds[i:end]
         delay_curve = base_delay + (np.sin((2.0 * np.pi * rate_hz * phase_chunk) + phase_offset) * depth)
-        source_positions = np.arange(i, end, dtype=np.float64) - delay_curve
+        source_positions = np.arange(i, end, dtype=np.float32) - delay_curve
         source_positions = np.clip(source_positions, 0.0, channel.shape[0] - 1)
         base = np.floor(source_positions).astype(int)
         frac = source_positions - base
@@ -724,7 +769,7 @@ def _variable_resample_positions(channel: np.ndarray, drift_curve: np.ndarray) -
     for i in range(0, channel.shape[0], block_size):
         end = min(i + block_size, channel.shape[0])
         drift_chunk = drift_curve[i:end]
-        source_positions = np.arange(i, end, dtype=np.float64) - drift_chunk
+        source_positions = np.arange(i, end, dtype=np.float32) - drift_chunk
         source_positions = np.clip(source_positions, 0.0, channel.shape[0] - 1)
         base = np.floor(source_positions).astype(int)
         frac = source_positions - base
@@ -736,7 +781,7 @@ def _variable_resample_positions(channel: np.ndarray, drift_curve: np.ndarray) -
 def _moving_average(audio: np.ndarray, kernel_size: int) -> np.ndarray:
     if kernel_size <= 1:
         return audio.copy()
-    kernel = np.ones(kernel_size, dtype=np.float64) / kernel_size
+    kernel = np.ones(kernel_size, dtype=np.float32) / kernel_size
     if audio.ndim == 1:
         return np.convolve(audio, kernel, mode="same")
     return np.column_stack([np.convolve(audio[:, idx], kernel, mode="same") for idx in range(audio.shape[1])])
