@@ -463,6 +463,63 @@ document.addEventListener("DOMContentLoaded", () => {
         a.click();
     });
 
+    // --- Audio Visualizer ---
+    const visualizerCanvas = document.getElementById("visualizer");
+    const canvasCtx = visualizerCanvas ? visualizerCanvas.getContext("2d") : null;
+    let audioCtx;
+    let analyser;
+    let mediaSource;
+
+    function initVisualizer() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 128;
+            mediaSource = audioCtx.createMediaElementSource(player);
+            mediaSource.connect(analyser);
+            analyser.connect(audioCtx.destination);
+            drawVisualizer();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+
+    function drawVisualizer() {
+        requestAnimationFrame(drawVisualizer);
+        if (!visualizerCanvas || !canvasCtx) return;
+
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        analyser.getByteFrequencyData(dataArray);
+
+        canvasCtx.clearRect(0, 0, visualizerCanvas.width, visualizerCanvas.height);
+
+        const style = getComputedStyle(document.documentElement);
+        const primaryColor = style.getPropertyValue('--primary').trim() || '#a78bfa';
+
+        const barWidth = (visualizerCanvas.width / bufferLength) * 2;
+        let x = 0;
+
+        for(let i = 0; i < bufferLength; i++) {
+            const barHeight = dataArray[i] / 2;
+            
+            canvasCtx.fillStyle = primaryColor;
+            canvasCtx.shadowBlur = 10;
+            canvasCtx.shadowColor = primaryColor;
+            
+            // Draw symmetrically from center vertically
+            const y = (visualizerCanvas.height - barHeight) / 2;
+            canvasCtx.fillRect(x, y, barWidth - 1, barHeight);
+
+            x += barWidth;
+        }
+    }
+
+    player.addEventListener('play', () => {
+        initVisualizer();
+    });
+
     // Register Service Worker for PWA offline support
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('./sw.js')
