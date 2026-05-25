@@ -13,12 +13,13 @@ async function initPyodide() {
         
         postMessage({ type: 'STATUS', message: 'Initializing Ambient Engine...', progress: 90 });
         // Fetch and load dsp.py
-        const dspResponse = await fetch("dsp.py");
+        const cacheBuster = Date.now();
+        const dspResponse = await fetch("dsp.py?t=" + cacheBuster);
         const dspCode = await dspResponse.text();
         pyodide.FS.writeFile("dsp.py", dspCode);
         
         // Fetch and load web_wrapper.py
-        const wrapperResponse = await fetch("web_wrapper.py");
+        const wrapperResponse = await fetch("web_wrapper.py?t=" + cacheBuster);
         const wrapperCode = await wrapperResponse.text();
         pyodide.FS.writeFile("web_wrapper.py", wrapperCode);
         

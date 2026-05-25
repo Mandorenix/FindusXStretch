@@ -457,3 +457,43 @@ input:checked + .switch-slider:before {
 .switch-slider.round:before {
   border-radius: 50%;
 }
+
+/* Custom Wavesurfer Region Drag Handles */
+#waveform ::part(region) {
+  touch-action: none !important; /* Fixes mobile page scroll when dragging */
+  background-color: color-mix(in srgb, var(--primary) 30%, transparent) !important;
+}
+
+#waveform ::part(region-handle-left),
+#waveform ::part(region-handle-right) {
+  width: 24px !important;
+  background-color: color-mix(in srgb, var(--primary) 60%, transparent) !important;
+  border: 2px solid var(--accent) !important;
+  border-radius: 4px;
+  z-index: 10 !important;
+  transition: background-color 0.2s;
+}
+
+#waveform ::part(region-handle-left):hover,
+#waveform ::part(region-handle-right):hover {
+  background-color: var(--primary) !important;
+}
+
+.region-move-handle {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 18px;
+  background-color: color-mix(in srgb, var(--primary) 60%, transparent);
+  border: 2px solid var(--accent);
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  transition: background-color 0.2s;
+  cursor: grab;
+}
+
+.region-move-handle:hover {
+  background-color: var(--primary);
+}

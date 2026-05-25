@@ -210,10 +210,24 @@ document.addEventListener("DOMContentLoaded", () => {
     wavesurfer.on('decode', () => {
         // Create default region over the whole file
         wsRegions.clearRegions();
+        
+        // Create visual drag handle for mobile
+        const regionContent = document.createElement('div');
+        regionContent.style.width = '100%';
+        regionContent.style.height = '100%';
+        regionContent.style.position = 'relative';
+        regionContent.style.pointerEvents = 'none';
+        
+        const moveHandle = document.createElement('div');
+        moveHandle.className = 'region-move-handle';
+        moveHandle.style.pointerEvents = 'auto'; // allow touch
+        
+        regionContent.appendChild(moveHandle);
+
         currentRegion = wsRegions.addRegion({
             start: 0,
             end: wavesurfer.getDuration(),
-            color: 'rgba(167, 139, 250, 0.3)',
+            content: regionContent,
             resize: true,
             drag: true
         });
