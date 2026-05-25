@@ -13,6 +13,19 @@ document.addEventListener("DOMContentLoaded", () => {
     const themeSelect = document.getElementById("themeSelect");
     const qualitySelect = document.getElementById("qualitySelect");
     
+    // Help Modal Logic
+    const openHelpBtn = document.getElementById('openHelpBtn');
+    const closeHelpBtn = document.getElementById('closeHelpBtn');
+    const helpModal = document.getElementById('helpModal');
+    
+    if (openHelpBtn && closeHelpBtn && helpModal) {
+        openHelpBtn.addEventListener('click', () => helpModal.style.display = 'flex');
+        closeHelpBtn.addEventListener('click', () => helpModal.style.display = 'none');
+        helpModal.addEventListener('click', (e) => {
+            if (e.target === helpModal) helpModal.style.display = 'none';
+        });
+    }
+    
     // Sliders & Vals
     const binds = [
         "stretch", "reverb", "shimmer",

@@ -203,8 +203,8 @@ class Launcher(tk.Tk):
                     content = f.read()
 
                 quad = f"{parts[0]}, {parts[1]}, {parts[2]}, 0"
-                content = re.sub(r'filevers=\(.*\)', f'filevers=({quad})', content)
-                content = re.sub(r'prodvers=\(.*\)', f'prodvers=({quad})', content)
+                content = re.sub(r'filevers=\(.*?\),?', f'filevers=({quad}),', content)
+                content = re.sub(r'prodvers=\(.*?\),?', f'prodvers=({quad}),', content)
                 content = re.sub(r'StringStruct\("FileVersion", ".*?"\)', f'StringStruct("FileVersion", "{new_version}")', content)
                 content = re.sub(r'StringStruct\("ProductVersion", ".*?"\)', f'StringStruct("ProductVersion", "{new_version}")', content)
 
@@ -392,6 +392,14 @@ class Launcher(tk.Tk):
                 if process.returncode != 0:
                     self.after(0, self.log, f"\n[ERROR] {desc} failed with code {process.returncode}! Aborting.")
                     return
+
+            self.after(0, self.log, "\n> Copying to latest...")
+            import shutil
+            try:
+                shutil.copy2(rf"dist\installer\findus_stretching_setup_v{self.version}.exe", r"dist\release\findus_stretching_setup_latest.exe")
+                shutil.copy2(zip_path, r"dist\release\findus_stretching_latest.zip")
+            except Exception as e:
+                self.after(0, self.log, f"[ERROR] Failed to copy latest: {e}")
 
             stamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             self.after(0, self.log, "\n> Updating changelog...")
