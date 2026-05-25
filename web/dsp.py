@@ -703,22 +703,34 @@ def _modulated_delay(
     phase_seconds: np.ndarray,
     phase_offset: float,
 ) -> np.ndarray:
-    delay_curve = base_delay + (np.sin((2.0 * np.pi * rate_hz * phase_seconds) + phase_offset) * depth)
-    source_positions = np.arange(channel.shape[0], dtype=np.float64) - delay_curve
-    source_positions = np.clip(source_positions, 0.0, max(0, channel.shape[0] - 1))
-    base = np.floor(source_positions).astype(int)
-    frac = source_positions - base
-    next_idx = np.clip(base + 1, 0, channel.shape[0] - 1)
-    return ((1.0 - frac) * channel[base]) + (frac * channel[next_idx])
+    out = np.empty_like(channel)
+    block_size = 131072
+    for i in range(0, channel.shape[0], block_size):
+        end = min(i + block_size, channel.shape[0])
+        phase_chunk = phase_seconds[i:end]
+        delay_curve = base_delay + (np.sin((2.0 * np.pi * rate_hz * phase_chunk) + phase_offset) * depth)
+        source_positions = np.arange(i, end, dtype=np.float64) - delay_curve
+        source_positions = np.clip(source_positions, 0.0, channel.shape[0] - 1)
+        base = np.floor(source_positions).astype(int)
+        frac = source_positions - base
+        next_idx = np.clip(base + 1, 0, channel.shape[0] - 1)
+        out[i:end] = ((1.0 - frac) * channel[base]) + (frac * channel[next_idx])
+    return out
 
 
 def _variable_resample_positions(channel: np.ndarray, drift_curve: np.ndarray) -> np.ndarray:
-    source_positions = np.arange(channel.shape[0], dtype=np.float64) - drift_curve
-    source_positions = np.clip(source_positions, 0.0, max(0, channel.shape[0] - 1))
-    base = np.floor(source_positions).astype(int)
-    frac = source_positions - base
-    next_idx = np.clip(base + 1, 0, channel.shape[0] - 1)
-    return ((1.0 - frac) * channel[base]) + (frac * channel[next_idx])
+    out = np.empty_like(channel)
+    block_size = 131072
+    for i in range(0, channel.shape[0], block_size):
+        end = min(i + block_size, channel.shape[0])
+        drift_chunk = drift_curve[i:end]
+        source_positions = np.arange(i, end, dtype=np.float64) - drift_chunk
+        source_positions = np.clip(source_positions, 0.0, channel.shape[0] - 1)
+        base = np.floor(source_positions).astype(int)
+        frac = source_positions - base
+        next_idx = np.clip(base + 1, 0, channel.shape[0] - 1)
+        out[i:end] = ((1.0 - frac) * channel[base]) + (frac * channel[next_idx])
+    return out
 
 
 def _moving_average(audio: np.ndarray, kernel_size: int) -> np.ndarray:

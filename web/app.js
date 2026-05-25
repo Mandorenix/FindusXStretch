@@ -16,7 +16,8 @@ document.addEventListener("DOMContentLoaded", () => {
     // Sliders & Vals
     const binds = [
         "stretch", "reverb", "shimmer",
-        "lowpass", "drive", "texture", "granular", "motion"
+        "lowpass", "drive", "texture", "granular", "motion",
+        "bloom", "delay", "chorus", "stereo_width", "autopan", "pitch_drift"
     ];
     const ui = {};
     binds.forEach(b => {
@@ -34,6 +35,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const advancedToggle = document.getElementById("advancedToggle");
     const advancedPanel = document.getElementById("advancedPanel");
+    
+    // Toggles
+    const reverseToggle = document.getElementById("reverseToggle");
+    const freezeToggle = document.getElementById("freezeToggle");
+
+    // Tab logic
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            tabBtns.forEach(b => b.classList.remove('active'));
+            tabContents.forEach(c => c.style.display = 'none');
+            
+            btn.classList.add('active');
+            const target = btn.getAttribute('data-tab');
+            document.getElementById(target).style.display = 'block';
+        });
+    });
+
     advancedToggle.addEventListener("click", () => {
         if (advancedPanel.style.display === "none") {
             advancedPanel.style.display = "block";
@@ -55,16 +76,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Presets
     const presets = {
-        default: { stretch: 4, reverb: 0.5, shimmer: 0.3, lowpass: 6000, drive: 0.0, texture: 0.0, granular: 0.0, motion: 0.0 },
-        deep_ambient: { stretch: 12, reverb: 0.9, shimmer: 0.1, lowpass: 2000, drive: 0.1, texture: 0.2, granular: 0.0, motion: 0.1 },
-        glitchy_tape: { stretch: 3, reverb: 0.2, shimmer: 0.0, lowpass: 4000, drive: 0.6, texture: 0.4, granular: 0.8, motion: 0.7 },
-        shimmering_ice: { stretch: 8, reverb: 0.8, shimmer: 0.9, lowpass: 8000, drive: 0.0, texture: 0.5, granular: 0.2, motion: 0.4 }
+        default: { stretch: 4, reverb: 0.5, shimmer: 0.3, lowpass: 6000, drive: 0.0, texture: 0.0, granular: 0.0, motion: 0.0, bloom: 0.0, delay: 0.0, chorus: 0.0, stereo_width: 1.0, autopan: 0.0, pitch_drift: 0.0 },
+        deep_ambient: { stretch: 12, reverb: 0.9, shimmer: 0.1, lowpass: 2000, drive: 0.1, texture: 0.2, granular: 0.0, motion: 0.1, bloom: 0.5, delay: 0.4, chorus: 0.2, stereo_width: 1.5, autopan: 0.3, pitch_drift: 0.1 },
+        glitchy_tape: { stretch: 3, reverb: 0.2, shimmer: 0.0, lowpass: 4000, drive: 0.6, texture: 0.4, granular: 0.8, motion: 0.7, bloom: 0.0, delay: 0.2, chorus: 0.0, stereo_width: 0.8, autopan: 0.0, pitch_drift: 0.8 },
+        shimmering_ice: { stretch: 8, reverb: 0.8, shimmer: 0.9, lowpass: 8000, drive: 0.0, texture: 0.5, granular: 0.2, motion: 0.4, bloom: 0.3, delay: 0.6, chorus: 0.5, stereo_width: 2.0, autopan: 0.5, pitch_drift: 0.0 }
     };
 
     presetSelect.addEventListener("change", (e) => {
         const preset = presets[e.target.value];
         if (preset) {
             Object.keys(preset).forEach(key => updateSlider(key, preset[key]));
+            if (e.target.value === 'default') {
+                reverseToggle.checked = false;
+                freezeToggle.checked = false;
+            }
         }
     });
 
@@ -78,6 +103,14 @@ document.addEventListener("DOMContentLoaded", () => {
         updateSlider('texture', (Math.random()).toFixed(2));
         updateSlider('granular', (Math.random()).toFixed(2));
         updateSlider('motion', (Math.random()).toFixed(2));
+        updateSlider('bloom', (Math.random()).toFixed(2));
+        updateSlider('delay', (Math.random()).toFixed(2));
+        updateSlider('chorus', (Math.random()).toFixed(2));
+        updateSlider('stereo_width', (Math.random() * 2).toFixed(2));
+        updateSlider('autopan', (Math.random()).toFixed(2));
+        updateSlider('pitch_drift', (Math.random()).toFixed(2));
+        reverseToggle.checked = Math.random() > 0.8;
+        freezeToggle.checked = Math.random() > 0.9;
         presetSelect.value = "default"; // Reset preset dropdown
     });
 
@@ -226,14 +259,14 @@ document.addEventListener("DOMContentLoaded", () => {
             granular_enabled: parseFloat(ui.granularSlider.value) > 0,
             motion_amount: parseFloat(ui.motionSlider.value),
             motion_enabled: parseFloat(ui.motionSlider.value) > 0,
-            chorus_amount: 0.0,
-            pitch_drift_amount: 0.0,
-            bloom_amount: 0.0,
-            delay_amount: 0.0,
-            autopan_amount: 0.0,
-            stereo_width: 1.0,
-            reverse: false,
-            freeze_enabled: false,
+            chorus_amount: parseFloat(ui.chorusSlider.value),
+            pitch_drift_amount: parseFloat(ui.pitch_driftSlider.value),
+            bloom_amount: parseFloat(ui.bloomSlider.value),
+            delay_amount: parseFloat(ui.delaySlider.value),
+            autopan_amount: parseFloat(ui.autopanSlider.value),
+            stereo_width: parseFloat(ui.stereo_widthSlider.value),
+            reverse: reverseToggle.checked,
+            freeze_enabled: freezeToggle.checked,
             wet_dry: 1.0,
             input_gain_db: 0.0,
             limiter_enabled: true

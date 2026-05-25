@@ -59,33 +59,90 @@
     <button id="advancedToggle" class="btn-text">⚙️ Advanced Settings</button>
     
     <div id="advancedPanel" class="advanced-panel" style="display: none;">
-      <div class="control-group">
-        <label>Render Quality:</label>
-        <select id="qualitySelect">
-          <option value="4096">Fast Preview (Low Quality)</option>
-          <option value="8192" selected>Standard (Balanced)</option>
-          <option value="16384">High Quality (Slow)</option>
-        </select>
+      
+      <div class="tab-buttons">
+        <button class="tab-btn active" data-tab="tab-tone" title="Tone (Quality, Filter, Drive, Bloom)">🎚️</button>
+        <button class="tab-btn" data-tab="tab-grain" title="Grain (Texture, Granular, Motion)">✨</button>
+        <button class="tab-btn" data-tab="tab-space" title="Space (Delay, Chorus, Width, Autopan)">🌌</button>
+        <button class="tab-btn" data-tab="tab-time" title="Time & Mod (Pitch Drift, Reverse, Freeze)">⏳</button>
       </div>
-      <div class="control-group">
-        <label>Lowpass Cutoff: <span class="val" id="lowpassVal">6000 Hz</span></label>
-        <input type="range" id="lowpassSlider" min="500" max="12000" step="100" value="6000">
+
+      <div class="tab-content" id="tab-tone">
+        <div class="control-group">
+          <label>Render Quality:</label>
+          <select id="qualitySelect">
+            <option value="4096">Fast Preview (Low Quality)</option>
+            <option value="8192" selected>Standard (Balanced)</option>
+            <option value="16384">High Quality (Slow)</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label>Lowpass Cutoff: <span class="val" id="lowpassVal">6000 Hz</span></label>
+          <input type="range" id="lowpassSlider" min="500" max="12000" step="100" value="6000">
+        </div>
+        <div class="control-group">
+          <label>Drive: <span class="val" id="driveVal">0.0</span></label>
+          <input type="range" id="driveSlider" min="0" max="1" step="0.1" value="0.0">
+        </div>
+        <div class="control-group">
+          <label>Bloom: <span class="val" id="bloomVal">0.0</span></label>
+          <input type="range" id="bloomSlider" min="0" max="1" step="0.1" value="0.0">
+        </div>
       </div>
-      <div class="control-group">
-        <label>Drive: <span class="val" id="driveVal">0.0</span></label>
-        <input type="range" id="driveSlider" min="0" max="1" step="0.1" value="0.0">
+
+      <div class="tab-content" id="tab-grain" style="display: none;">
+        <div class="control-group">
+          <label>Texture: <span class="val" id="textureVal">0.0</span></label>
+          <input type="range" id="textureSlider" min="0" max="1" step="0.1" value="0.0">
+        </div>
+        <div class="control-group">
+          <label>Granular: <span class="val" id="granularVal">0.0</span></label>
+          <input type="range" id="granularSlider" min="0" max="1" step="0.1" value="0.0">
+        </div>
+        <div class="control-group">
+          <label>Motion: <span class="val" id="motionVal">0.0</span></label>
+          <input type="range" id="motionSlider" min="0" max="1" step="0.1" value="0.0">
+        </div>
       </div>
-      <div class="control-group">
-        <label>Texture: <span class="val" id="textureVal">0.0</span></label>
-        <input type="range" id="textureSlider" min="0" max="1" step="0.1" value="0.0">
+
+      <div class="tab-content" id="tab-space" style="display: none;">
+        <div class="control-group">
+          <label>Delay: <span class="val" id="delayVal">0.0</span></label>
+          <input type="range" id="delaySlider" min="0" max="1" step="0.1" value="0.0">
+        </div>
+        <div class="control-group">
+          <label>Chorus: <span class="val" id="chorusVal">0.0</span></label>
+          <input type="range" id="chorusSlider" min="0" max="1" step="0.1" value="0.0">
+        </div>
+        <div class="control-group">
+          <label>Stereo Width: <span class="val" id="stereo_widthVal">1.0</span></label>
+          <input type="range" id="stereo_widthSlider" min="0" max="2" step="0.1" value="1.0">
+        </div>
+        <div class="control-group">
+          <label>Autopan: <span class="val" id="autopanVal">0.0</span></label>
+          <input type="range" id="autopanSlider" min="0" max="1" step="0.1" value="0.0">
+        </div>
       </div>
-      <div class="control-group">
-        <label>Granular: <span class="val" id="granularVal">0.0</span></label>
-        <input type="range" id="granularSlider" min="0" max="1" step="0.1" value="0.0">
-      </div>
-      <div class="control-group">
-        <label>Motion: <span class="val" id="motionVal">0.0</span></label>
-        <input type="range" id="motionSlider" min="0" max="1" step="0.1" value="0.0">
+
+      <div class="tab-content" id="tab-time" style="display: none;">
+        <div class="control-group">
+          <label>Pitch Drift: <span class="val" id="pitch_driftVal">0.0</span></label>
+          <input type="range" id="pitch_driftSlider" min="0" max="1" step="0.1" value="0.0">
+        </div>
+        <div class="control-group toggle-group">
+          <label>Reverse</label>
+          <label class="switch">
+            <input type="checkbox" id="reverseToggle">
+            <span class="switch-slider round"></span>
+          </label>
+        </div>
+        <div class="control-group toggle-group">
+          <label>Freeze</label>
+          <label class="switch">
+            <input type="checkbox" id="freezeToggle">
+            <span class="switch-slider round"></span>
+          </label>
+        </div>
       </div>
     </div>
 
