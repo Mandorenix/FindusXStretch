@@ -518,6 +518,20 @@ document.addEventListener("DOMContentLoaded", () => {
     processBtn.addEventListener("click", async () => {
         if (layers.length === 0 || !isWorkerReady) return;
         
+        // Stop any playing audio before processing
+        if (isPlaying) {
+            layers.forEach(l => {
+                if (l.bufferSource) {
+                    try { l.bufferSource.stop(); } catch(e) {}
+                    l.bufferSource.disconnect();
+                    l.bufferSource = null;
+                }
+            });
+            isPlaying = false;
+            masterPlayBtn.textContent = "▶ Play All Tracks";
+            cancelAnimationFrame(playbackUpdateTimer);
+        }
+        
         processBtn.disabled = true;
         playerContainer.style.display = "none";
         document.getElementById("progressContainer").style.display = "block";
@@ -609,6 +623,19 @@ document.addEventListener("DOMContentLoaded", () => {
     let isPlaying = false;
     let isInfiniteMix = false;
     
+    // Playback state for seeking
+    let masterPlaybackOffset = 0;
+    let masterPlaybackStartTime = 0;
+    let masterPlaybackMaxDuration = 0;
+    let playbackUpdateTimer;
+    
+    function formatTime(secs) {
+        if (!isFinite(secs)) return "∞";
+        const m = Math.floor(secs / 60);
+        const s = Math.floor(secs % 60).toString().padStart(2, '0');
+        return `${m}:${s}`;
+    }
+    
     // Automation variables
     let automationFilter;
     let lfoNode;
@@ -625,6 +652,7 @@ document.addEventListener("DOMContentLoaded", () => {
         masterGain = audioCtx.createGain();
         analyser = audioCtx.createAnalyser();
         analyser.fftSize = 128;
+        analyser.smoothingTimeConstant = 0.85; // Smoother transitions
         
         automationFilter = audioCtx.createBiquadFilter();
         automationFilter.type = "lowpass";
@@ -655,10 +683,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const layer = layers[i];
             
             // Decode blob to AudioBuffer first to get duration
-            if (!layer.audioBuffer) {
-                const arrayBuffer = await layer.processedBlob.arrayBuffer();
-                layer.audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-            }
+            const arrayBuffer = await layer.processedBlob.arrayBuffer();
+            layer.audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
             
             const mins = Math.floor(layer.audioBuffer.duration / 60);
             const secs = Math.floor(layer.audioBuffer.duration % 60).toString().padStart(2, '0');
@@ -756,11 +782,78 @@ document.addEventListener("DOMContentLoaded", () => {
             if (lfoGainNode) lfoGainNode.gain.value = 0;
         }
 
+        // Setup Seek Slider bounds
+        masterPlaybackMaxDuration = 0;
+        layers.forEach(l => {
+            if (l.audioBuffer && l.audioBuffer.duration > masterPlaybackMaxDuration) {
+                masterPlaybackMaxDuration = l.audioBuffer.duration;
+            }
+        });
+        
+        const slider = document.getElementById('masterSeekSlider');
+        if (isInfiniteMix) {
+            masterPlaybackMaxDuration = Infinity;
+            slider.disabled = true;
+            document.getElementById('totalTimeDisplay').textContent = "∞ min";
+        } else {
+            slider.disabled = false;
+            slider.max = masterPlaybackMaxDuration;
+            document.getElementById('totalTimeDisplay').textContent = formatTime(masterPlaybackMaxDuration);
+        }
+        
+        masterPlaybackOffset = 0;
+        slider.value = 0;
+        document.getElementById('currentTimeDisplay').textContent = "0:00";
+        cancelAnimationFrame(playbackUpdateTimer);
+
         init3DVisualizer();
         drawVisualizer();
         isPlaying = false;
         masterPlayBtn.textContent = "▶ Play All Tracks";
     }
+
+    function updatePlaybackProgress() {
+        if (!isPlaying) return;
+        const current = masterPlaybackOffset + (audioCtx.currentTime - masterPlaybackStartTime);
+        
+        if (current >= masterPlaybackMaxDuration && !isInfiniteMix) {
+            document.getElementById("masterPlayBtn").click(); // auto stop
+            masterPlaybackOffset = masterPlaybackMaxDuration;
+            document.getElementById('currentTimeDisplay').textContent = formatTime(masterPlaybackMaxDuration);
+            document.getElementById('masterSeekSlider').value = masterPlaybackMaxDuration;
+            return;
+        }
+
+        document.getElementById('currentTimeDisplay').textContent = formatTime(current);
+        document.getElementById('masterSeekSlider').value = current;
+        
+        playbackUpdateTimer = requestAnimationFrame(updatePlaybackProgress);
+    }
+    
+    document.getElementById('masterSeekSlider').addEventListener('input', (e) => {
+        masterPlaybackOffset = parseFloat(e.target.value);
+        document.getElementById('currentTimeDisplay').textContent = formatTime(masterPlaybackOffset);
+        
+        if (isPlaying) {
+            layers.forEach(l => {
+                if (l.bufferSource) {
+                    l.bufferSource.stop();
+                    l.bufferSource.disconnect();
+                    l.bufferSource = null;
+                }
+            });
+            masterPlaybackStartTime = audioCtx.currentTime;
+            layers.forEach(l => {
+                if (l.audioBuffer) {
+                    l.bufferSource = audioCtx.createBufferSource();
+                    l.bufferSource.buffer = l.audioBuffer;
+                    l.bufferSource.loop = l.settings.infiniteMode;
+                    l.bufferSource.connect(l.gainNode);
+                    l.bufferSource.start(0, masterPlaybackOffset);
+                }
+            });
+        }
+    });
 
     masterPlayBtn.addEventListener("click", () => {
         if (!audioCtx) return;
@@ -779,19 +872,26 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
             });
             isPlaying = false;
+            masterPlaybackOffset += audioCtx.currentTime - masterPlaybackStartTime;
+            cancelAnimationFrame(playbackUpdateTimer);
             masterPlayBtn.textContent = "▶ Play All Tracks";
         } else {
             // Play all
+            if (masterPlaybackOffset >= masterPlaybackMaxDuration && !isInfiniteMix) {
+                masterPlaybackOffset = 0; // restart if at end
+            }
             layers.forEach(l => {
                 if (l.audioBuffer) {
                     l.bufferSource = audioCtx.createBufferSource();
                     l.bufferSource.buffer = l.audioBuffer;
                     l.bufferSource.loop = l.settings.infiniteMode;
                     l.bufferSource.connect(l.gainNode);
-                    l.bufferSource.start(0);
+                    l.bufferSource.start(0, masterPlaybackOffset);
                 }
             });
             isPlaying = true;
+            masterPlaybackStartTime = audioCtx.currentTime;
+            updatePlaybackProgress();
             masterPlayBtn.textContent = "⏸ Stop All Tracks";
         }
     });
@@ -803,21 +903,27 @@ document.addEventListener("DOMContentLoaded", () => {
     const toggleVisBtn = document.getElementById("toggleVisBtn");
     
     let visualizerMode = '3d';
-    let scene, camera, renderer, particles, particleGeometry;
+    let current3DTheme = 'cosmic';
+    let scene, camera, renderer, visualizerObjects = {};
     let is3DInitialized = false;
 
-    if (toggleVisBtn) {
-        toggleVisBtn.addEventListener('click', () => {
+    const visThemeSelect = document.getElementById('visThemeSelect');
+    if (visThemeSelect) {
+        visThemeSelect.addEventListener('change', (e) => {
+            const val = e.target.value; // e.g. "3d_cosmic"
+            const parts = val.split('_');
+            visualizerMode = parts[0];
+            current3DTheme = parts[1];
+            
             if (visualizerMode === '3d') {
-                visualizerMode = '2d';
-                visualizer3dContainer.style.display = 'none';
-                visualizer2dCanvas.style.display = 'block';
-                toggleVisBtn.textContent = 'Switch to 3D';
-            } else {
-                visualizerMode = '3d';
                 visualizer3dContainer.style.display = 'block';
                 visualizer2dCanvas.style.display = 'none';
-                toggleVisBtn.textContent = 'Switch to 2D';
+                if (is3DInitialized) {
+                    setup3DScene(current3DTheme);
+                }
+            } else {
+                visualizer3dContainer.style.display = 'none';
+                visualizer2dCanvas.style.display = 'block';
             }
         });
     }
@@ -839,37 +945,8 @@ document.addEventListener("DOMContentLoaded", () => {
         renderer.setPixelRatio(window.devicePixelRatio);
         visualizer3dContainer.appendChild(renderer.domElement);
         
-        const particleCount = 2000;
-        particleGeometry = new THREE.BufferGeometry();
-        const positions = new Float32Array(particleCount * 3);
-        
-        for(let i = 0; i < particleCount; i++) {
-            const r = 10 + Math.random() * 70;
-            const theta = Math.random() * 2 * Math.PI;
-            const phi = Math.acos(2 * Math.random() - 1);
-            
-            positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
-            positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
-            positions[i * 3 + 2] = r * Math.cos(phi);
-        }
-        
-        particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        
-        const style = getComputedStyle(document.documentElement);
-        const primaryColorHex = style.getPropertyValue('--primary').trim() || '#a78bfa';
-        
-        const particleMaterial = new THREE.PointsMaterial({
-            color: new THREE.Color(primaryColorHex),
-            size: 2.0,
-            transparent: true,
-            opacity: 0.8,
-            blending: THREE.AdditiveBlending
-        });
-        
-        particles = new THREE.Points(particleGeometry, particleMaterial);
-        scene.add(particles);
-        
         is3DInitialized = true;
+        setup3DScene(current3DTheme);
         
         window.addEventListener('resize', () => {
             if (visualizer3dContainer.clientWidth > 0) {
@@ -882,6 +959,107 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    function setup3DScene(theme) {
+        while(scene.children.length > 0){ 
+            scene.remove(scene.children[0]); 
+        }
+        visualizerObjects = {};
+        
+        const style = getComputedStyle(document.documentElement);
+        const primaryHex = style.getPropertyValue('--primary').trim() || '#a78bfa';
+        const accentHex = style.getPropertyValue('--accent').trim() || '#f472b6';
+        const secondaryHex = style.getPropertyValue('--secondary').trim() || '#10b981';
+        
+        if (theme === 'cosmic') {
+            camera.position.set(0, 0, 100);
+            camera.lookAt(0, 0, 0);
+            scene.fog.density = 0.005;
+            
+            const particleCount = 2000;
+            const geom = new THREE.BufferGeometry();
+            const pos = new Float32Array(particleCount * 3);
+            for(let i = 0; i < particleCount; i++) {
+                const r = 10 + Math.random() * 70;
+                const theta = Math.random() * 2 * Math.PI;
+                const phi = Math.acos(2 * Math.random() - 1);
+                pos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+                pos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+                pos[i * 3 + 2] = r * Math.cos(phi);
+            }
+            geom.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            const mat = new THREE.PointsMaterial({ color: new THREE.Color(primaryHex), size: 2.0, transparent: true, blending: THREE.AdditiveBlending });
+            const particles = new THREE.Points(geom, mat);
+            scene.add(particles);
+            visualizerObjects.particles = particles;
+        } 
+        else if (theme === 'terrain') {
+            camera.position.set(0, 30, 80);
+            camera.lookAt(0, 0, 0);
+            scene.fog.density = 0.015;
+            
+            const geom = new THREE.PlaneGeometry(200, 200, 32, 32);
+            geom.rotateX(-Math.PI / 2);
+            const mat = new THREE.MeshBasicMaterial({ color: new THREE.Color(secondaryHex), wireframe: true, transparent: true, opacity: 0.5 });
+            const terrain = new THREE.Mesh(geom, mat);
+            scene.add(terrain);
+            visualizerObjects.terrain = terrain;
+        }
+        else if (theme === 'rings') {
+            camera.position.set(0, 0, 120);
+            camera.lookAt(0, 0, 0);
+            scene.fog.density = 0.002;
+            
+            visualizerObjects.rings = [];
+            const colors = [primaryHex, accentHex, secondaryHex];
+            for(let i = 0; i < 3; i++) {
+                const geom = new THREE.TorusGeometry(20 + i*15, 0.5, 16, 100);
+                const mat = new THREE.MeshBasicMaterial({ color: new THREE.Color(colors[i]), wireframe: true });
+                const ring = new THREE.Mesh(geom, mat);
+                ring.rotation.x = Math.random() * Math.PI;
+                ring.rotation.y = Math.random() * Math.PI;
+                scene.add(ring);
+                visualizerObjects.rings.push(ring);
+            }
+        }
+        else if (theme === 'tunnel') {
+            camera.position.set(0, 0, 50);
+            camera.lookAt(0, 0, 0);
+            scene.fog.density = 0.01;
+            
+            const geom = new THREE.CylinderGeometry(15, 15, 300, 32, 32, true);
+            geom.rotateX(Math.PI / 2);
+            const mat = new THREE.MeshBasicMaterial({ color: new THREE.Color(primaryHex), wireframe: true, transparent: true, opacity: 0.3 });
+            const tunnel = new THREE.Mesh(geom, mat);
+            scene.add(tunnel);
+            visualizerObjects.tunnel = tunnel;
+        }
+        else if (theme === 'plasma') {
+            camera.position.set(0, 0, 80);
+            camera.lookAt(0, 0, 0);
+            scene.fog.density = 0.005;
+            
+            const geom = new THREE.IcosahedronGeometry(20, 3);
+            const mat = new THREE.PointsMaterial({ color: new THREE.Color(accentHex), size: 1.5, transparent: true, blending: THREE.AdditiveBlending });
+            const plasma = new THREE.Points(geom, mat);
+            scene.add(plasma);
+            visualizerObjects.plasma = plasma;
+            visualizerObjects.plasmaBasePositions = new Float32Array(geom.attributes.position.array);
+        }
+        else if (theme === 'grid') {
+            camera.position.set(0, 10, 60);
+            camera.lookAt(0, 5, 0);
+            scene.fog.density = 0.02;
+            scene.fog.color = new THREE.Color(0x000000);
+            
+            const geom = new THREE.PlaneGeometry(200, 200, 40, 40);
+            geom.rotateX(-Math.PI / 2);
+            const mat = new THREE.LineBasicMaterial({ color: new THREE.Color(accentHex), transparent: true, opacity: 0.6 });
+            const grid = new THREE.LineSegments(new THREE.WireframeGeometry(geom), mat);
+            scene.add(grid);
+            visualizerObjects.grid = grid;
+        }
+    }
+
     function drawVisualizer() {
         requestAnimationFrame(drawVisualizer);
         if (!analyser) return;
@@ -890,44 +1068,157 @@ document.addEventListener("DOMContentLoaded", () => {
         const dataArray = new Uint8Array(bufferLength);
         analyser.getByteFrequencyData(dataArray);
 
-        const style = getComputedStyle(document.documentElement);
-        const primaryColorHex = style.getPropertyValue('--primary').trim() || '#a78bfa';
-
         if (visualizerMode === '3d' && is3DInitialized) {
-            let sum = 0;
+            let sum = 0, bassSum = 0, midSum = 0;
             for(let i = 0; i < bufferLength; i++) {
                 sum += dataArray[i];
+                if (i < bufferLength * 0.1) bassSum += dataArray[i];
+                else if (i < bufferLength * 0.5) midSum += dataArray[i];
             }
             const avgFreq = sum / bufferLength;
             const intensity = avgFreq / 255.0;
+            const bassIntensity = (bassSum / (bufferLength * 0.1)) / 255.0 || 0;
+            const midIntensity = (midSum / (bufferLength * 0.4)) / 255.0 || 0;
 
-            particles.rotation.y += 0.001 + (intensity * 0.01);
-            particles.rotation.x += 0.0005 + (intensity * 0.005);
-            
-            const scale = 1.0 + (intensity * 0.6);
-            particles.scale.set(scale, scale, scale);
-            
-            particles.material.color.set(primaryColorHex);
-            particles.material.opacity = 0.4 + (intensity * 0.6);
+            const style = getComputedStyle(document.documentElement);
+            const primaryHex = style.getPropertyValue('--primary').trim() || '#a78bfa';
+
+            if (current3DTheme === 'cosmic' && visualizerObjects.particles) {
+                visualizerObjects.particles.rotation.y += 0.001 + (intensity * 0.01);
+                visualizerObjects.particles.rotation.x += 0.0005 + (intensity * 0.005);
+                const scale = 1.0 + (intensity * 0.6);
+                visualizerObjects.particles.scale.set(scale, scale, scale);
+                visualizerObjects.particles.material.color.set(primaryHex);
+                visualizerObjects.particles.material.opacity = 0.4 + (intensity * 0.6);
+            }
+            else if (current3DTheme === 'terrain' && visualizerObjects.terrain) {
+                const positions = visualizerObjects.terrain.geometry.attributes.position.array;
+                const count = visualizerObjects.terrain.geometry.attributes.position.count;
+                
+                for(let i = 0; i < count; i++) {
+                    let z = positions[i*3 + 2];
+                    z += 0.5 + (bassIntensity * 1.5);
+                    if (z > 100) z -= 200;
+                    positions[i*3 + 2] = z;
+                    
+                    const dataIdx = Math.floor(Math.abs(positions[i*3] / 100) * bufferLength);
+                    const val = dataArray[dataIdx] || 0;
+                    const targetY = (val / 255.0) * 30.0 * intensity;
+                    positions[i*3 + 1] += (targetY - positions[i*3 + 1]) * 0.1;
+                }
+                visualizerObjects.terrain.geometry.attributes.position.needsUpdate = true;
+            }
+            else if (current3DTheme === 'rings' && visualizerObjects.rings) {
+                visualizerObjects.rings.forEach((ring, i) => {
+                    ring.rotation.x += 0.01 * (i+1) + (bassIntensity * 0.05);
+                    ring.rotation.y += 0.005 * (i+1) + (midIntensity * 0.05);
+                    const scale = 1.0 + (intensity * 0.3 * (i+1));
+                    ring.scale.set(scale, scale, scale);
+                });
+            }
+            else if (current3DTheme === 'tunnel' && visualizerObjects.tunnel) {
+                visualizerObjects.tunnel.rotation.z += 0.005 + (midIntensity * 0.02);
+                camera.position.z -= 0.5 + (bassIntensity * 2.0);
+                if (camera.position.z < -50) camera.position.z = 50;
+                
+                const scale = 1.0 + (intensity * 0.2);
+                visualizerObjects.tunnel.scale.set(scale, scale, 1.0);
+                visualizerObjects.tunnel.material.color.set(primaryHex);
+            }
+            else if (current3DTheme === 'plasma' && visualizerObjects.plasma) {
+                visualizerObjects.plasma.rotation.y += 0.005 + (midIntensity * 0.01);
+                visualizerObjects.plasma.rotation.z += 0.002 + (bassIntensity * 0.01);
+                
+                const positions = visualizerObjects.plasma.geometry.attributes.position.array;
+                const base = visualizerObjects.plasmaBasePositions;
+                const count = visualizerObjects.plasma.geometry.attributes.position.count;
+                
+                for(let i=0; i<count; i++) {
+                    const dataIdx = Math.floor((i / count) * bufferLength);
+                    const val = dataArray[dataIdx] || 0;
+                    const deform = 1.0 + ((val / 255.0) * bassIntensity * 1.5);
+                    
+                    positions[i*3] = base[i*3] * deform;
+                    positions[i*3+1] = base[i*3+1] * deform;
+                    positions[i*3+2] = base[i*3+2] * deform;
+                }
+                visualizerObjects.plasma.geometry.attributes.position.needsUpdate = true;
+                visualizerObjects.plasma.material.color.set(Math.random() > 0.9 ? secondaryHex : accentHex);
+            }
+            else if (current3DTheme === 'grid' && visualizerObjects.grid) {
+                visualizerObjects.grid.position.z += 0.5 + (bassIntensity * 2.0);
+                if (visualizerObjects.grid.position.z > 20) visualizerObjects.grid.position.z = 0;
+                
+                const scale = 1.0 + (intensity * 0.1);
+                visualizerObjects.grid.scale.set(1.0, scale, 1.0);
+                visualizerObjects.grid.material.color.set(bassIntensity > 0.6 ? primaryHex : accentHex);
+            }
 
             renderer.render(scene, camera);
         } else if (visualizerMode === '2d' && canvas2dCtx) {
             canvas2dCtx.clearRect(0, 0, visualizer2dCanvas.width, visualizer2dCanvas.height);
+            const w = visualizer2dCanvas.width;
+            const h = visualizer2dCanvas.height;
+            
+            const style = getComputedStyle(document.documentElement);
+            const primaryHex = style.getPropertyValue('--primary').trim() || '#a78bfa';
+            const accentHex = style.getPropertyValue('--accent').trim() || '#f472b6';
+            
+            canvas2dCtx.fillStyle = primaryHex;
+            canvas2dCtx.strokeStyle = accentHex;
+            canvas2dCtx.lineWidth = 2;
+            canvas2dCtx.shadowBlur = 10;
+            canvas2dCtx.shadowColor = primaryHex;
 
-            const barWidth = (visualizer2dCanvas.width / bufferLength) * 2;
-            let x = 0;
-
-            for(let i = 0; i < bufferLength; i++) {
-                const barHeight = (dataArray[i] / 255.0) * visualizer2dCanvas.height;
+            if (current3DTheme === 'spectrum') {
+                const barWidth = (w / bufferLength) * 2.5;
+                let x = 0;
+                for(let i = 0; i < bufferLength; i++) {
+                    const barHeight = (dataArray[i] / 255.0) * h;
+                    canvas2dCtx.fillRect(x, h - barHeight, barWidth - 1, barHeight);
+                    x += barWidth;
+                }
+            }
+            else if (current3DTheme === 'oscilloscope') {
+                canvas2dCtx.beginPath();
+                const sliceWidth = w * 1.0 / bufferLength;
+                let x = 0;
+                for(let i = 0; i < bufferLength; i++) {
+                    const v = dataArray[i] / 128.0; 
+                    const y = v * h / 2;
+                    if(i === 0) canvas2dCtx.moveTo(x, y);
+                    else canvas2dCtx.lineTo(x, y);
+                    x += sliceWidth;
+                }
+                canvas2dCtx.stroke();
+            }
+            else if (current3DTheme === 'circular') {
+                const centerX = w / 2;
+                const centerY = h / 2;
+                const radius = h / 4;
                 
-                canvas2dCtx.fillStyle = primaryColorHex;
-                canvas2dCtx.shadowBlur = 10;
-                canvas2dCtx.shadowColor = primaryColorHex;
-                
-                const y = (visualizer2dCanvas.height - barHeight) / 2;
-                canvas2dCtx.fillRect(x, y, barWidth - 1, barHeight);
-
-                x += barWidth;
+                canvas2dCtx.beginPath();
+                for(let i = 0; i < bufferLength; i++) {
+                    const rads = Math.PI * 2 / bufferLength;
+                    const barHeight = (dataArray[i] / 255.0) * (h / 2);
+                    const rx = centerX + Math.cos(rads * i) * (radius + barHeight);
+                    const ry = centerY + Math.sin(rads * i) * (radius + barHeight);
+                    
+                    if (i === 0) canvas2dCtx.moveTo(rx, ry);
+                    else canvas2dCtx.lineTo(rx, ry);
+                }
+                canvas2dCtx.closePath();
+                canvas2dCtx.stroke();
+            }
+            else if (current3DTheme === 'symmetry') {
+                const barWidth = (w / bufferLength) * 2;
+                let x = 0;
+                for(let i = 0; i < bufferLength; i++) {
+                    const barHeight = (dataArray[i] / 255.0) * (h / 2);
+                    const yCenter = h / 2;
+                    canvas2dCtx.fillRect(x, yCenter - barHeight, barWidth - 1, barHeight * 2);
+                    x += barWidth;
+                }
             }
         }
     }
