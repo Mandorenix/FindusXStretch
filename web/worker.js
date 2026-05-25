@@ -52,9 +52,14 @@ self.onmessage = async (e) => {
             // Load bytes into Pyodide
             const js_array = new Uint8Array(wavBytes);
             
+            // Create a JS proxy for Python to call
+            const progressCallback = (progress, message) => {
+                postMessage({ type: 'progress', progress: progress, message: message });
+            };
+
             // Call Python function
             const web_wrapper = pyodide.globals.get('web_wrapper');
-            const resultBytes = web_wrapper.process_audio(js_array, stretchFactor, effectsJson, windowSize, regionStart, regionEnd);
+            const resultBytes = web_wrapper.process_audio(js_array, stretchFactor, effectsJson, windowSize, regionStart, regionEnd, progressCallback);
             
             const jsArray = resultBytes.toJs();
             

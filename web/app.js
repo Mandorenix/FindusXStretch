@@ -172,9 +172,20 @@ document.addEventListener("DOMContentLoaded", () => {
             end: wavesurfer.getDuration(),
             color: 'rgba(167, 139, 250, 0.3)',
             resize: true,
-            drag: false
+            drag: true
         });
+        currentZoom = waveformEl.clientWidth / wavesurfer.getDuration();
     });
+
+    let currentZoom = 50;
+    waveformEl.addEventListener('wheel', (e) => {
+        if (!wavesurfer) return;
+        e.preventDefault();
+        // zoom in if scrolling up, out if scrolling down
+        const delta = e.deltaY < 0 ? 1.2 : 0.8;
+        currentZoom = Math.max(10, Math.min(currentZoom * delta, 2000));
+        wavesurfer.zoom(currentZoom);
+    }, { passive: false });
 
     wsRegions.on('region-updated', (region) => {
         currentRegion = region;
@@ -191,9 +202,15 @@ document.addEventListener("DOMContentLoaded", () => {
         } else if (data.type === 'STATUS') {
             statusText.textContent = data.message;
             statusText.classList.add("pulse");
+        } else if (data.type === 'progress') {
+            const pct = Math.round(data.progress * 100);
+            document.getElementById("progressContainer").style.display = "block";
+            document.getElementById("progressBar").style.width = pct + "%";
+            statusText.textContent = data.message + " (" + pct + "%)";
         } else if (data.type === 'DONE') {
             statusText.textContent = "Processing Complete!";
             statusText.classList.remove("pulse");
+            document.getElementById("progressContainer").style.display = "none";
             processBtn.disabled = false;
             
             // Create audio blob and play
@@ -205,6 +222,7 @@ document.addEventListener("DOMContentLoaded", () => {
         } else if (data.type === 'ERROR') {
             statusText.textContent = "Error: " + data.error;
             statusText.classList.remove("pulse");
+            document.getElementById("progressContainer").style.display = "none";
             processBtn.disabled = false;
         }
     };
@@ -240,6 +258,8 @@ document.addEventListener("DOMContentLoaded", () => {
         
         processBtn.disabled = true;
         playerContainer.style.display = "none";
+        document.getElementById("progressContainer").style.display = "block";
+        document.getElementById("progressBar").style.width = "0%";
         
         const lowpassHz = parseFloat(ui.lowpassSlider.value);
         const filterMode = lowpassHz < 12000 ? "Low-pass" : "Off";
