@@ -48,6 +48,7 @@ self.onmessage = async (e) => {
         const windowSize = e.data.windowSize || 8192;
         const regionStart = e.data.regionStart || 0.0;
         const regionEnd = e.data.regionEnd || -1.0;
+        const infiniteMode = e.data.infiniteMode || false;
 
         self.postMessage({ type: 'progress', message: 'Processing audio through Python...' });
         
@@ -62,7 +63,7 @@ self.onmessage = async (e) => {
 
             // Call Python function
             const web_wrapper = pyodide.globals.get('web_wrapper');
-            const resultBytes = web_wrapper.process_audio(js_array, stretchFactor, effectsJson, windowSize, regionStart, regionEnd, progressCallback);
+            const resultBytes = web_wrapper.process_audio(js_array, stretchFactor, effectsJson, windowSize, regionStart, regionEnd, infiniteMode, progressCallback);
             
             const jsArray = resultBytes.toJs();
             

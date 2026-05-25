@@ -20,23 +20,15 @@
 
   <div class="glass-panel">
     
-    <div id="waveformContainer" style="display: none; width: 100%; min-height: 80px; margin-bottom: 15px; border: 2px solid var(--glass-border); border-radius: var(--btn-radius); padding: 10px; background: rgba(0,0,0,0.2);">
-      <div id="waveform" style="width: 100%; min-height: 80px;"></div>
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
-        <button id="playRegionBtn" class="btn-secondary" style="padding: 8px 16px; font-size: 0.9rem; border: none; border-radius: var(--btn-radius); cursor: pointer; color: var(--text-main); display: flex; align-items: center; justify-content: center; min-width: 100px;">
-          ▶ Preview
-        </button>
-        <div style="display: flex; gap: 8px;">
-          <button id="zoomOutBtn" class="btn-secondary" style="padding: 8px 16px; font-size: 1.1rem; border: none; border-radius: var(--btn-radius); cursor: pointer; color: var(--text-main); font-weight: bold;">-</button>
-          <button id="zoomInBtn" class="btn-secondary" style="padding: 8px 16px; font-size: 1.1rem; border: none; border-radius: var(--btn-radius); cursor: pointer; color: var(--text-main); font-weight: bold;">+</button>
-        </div>
-      </div>
+    <!-- Layers Manager -->
+    <div id="layersContainer" style="margin-bottom: 15px; display: flex; flex-direction: column; gap: 10px;">
+      <!-- Layers will be dynamically injected here -->
     </div>
 
-    <div class="upload-area" id="dropZone" onclick="document.getElementById('audioInput').click()">
+    <div class="upload-area" id="addLayerBtn" onclick="document.getElementById('audioInput').click()" style="padding: 15px; margin-bottom: 15px;">
       <div id="uploadPrompt">
-        <p style="font-weight:600; font-size:1.1rem; color:var(--text-main);" id="uploadPromptText">Tap to Upload Audio</p>
-        <p style="font-size:0.8rem; margin-top:5px; color:var(--text-muted);" id="fileName">Select a short WAV file</p>
+        <p style="font-weight:600; font-size:1.1rem; color:var(--text-main);" id="uploadPromptText">➕ Add New Layer</p>
+        <p style="font-size:0.8rem; margin-top:5px; color:var(--text-muted);" id="fileName">Select a short WAV file to add as a track</p>
       </div>
       <input type="file" id="audioInput" accept="audio/wav, audio/x-wav" style="display: none;">
     </div>
@@ -165,6 +157,14 @@
       </div>
     </div>
 
+    <div class="control-group toggle-group" style="margin-bottom: 15px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: var(--btn-radius); border: 1px solid var(--glass-border);">
+      <label style="font-weight: bold; color: var(--primary);" title="Creates a seamless eternal loop with slow automation of filters over time.">🌌 Infinite Generative Mode</label>
+      <label class="switch">
+        <input type="checkbox" id="infiniteToggle">
+        <span class="switch-slider round"></span>
+      </label>
+    </div>
+
     <button id="surpriseBtn" class="btn-text" style="font-size: 1.1rem; margin-bottom: 10px;">🎲 Surprise Me</button>
 
     <button class="btn" id="processBtn" disabled>
@@ -178,15 +178,20 @@
     </div>
     <div id="playerContainer" style="display:none; margin-top: 20px;">
         <canvas id="visualizer" width="400" height="100" style="width: 100%; height: 100px; border-radius: var(--btn-radius); background: rgba(0,0,0,0.2); margin-bottom: 10px; display: block;"></canvas>
-        <audio id="player" controls style="width: 100%;"></audio>
+        
+        <div style="display: flex; justify-content: center; margin-bottom: 15px;">
+            <button id="masterPlayBtn" class="btn" style="width: 100%;">▶ Play All Tracks</button>
+        </div>
+
+        <div id="mixerContainer" style="background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); border-radius: var(--btn-radius); padding: 15px; margin-bottom: 15px; display: flex; flex-direction: column; gap: 15px;">
+            <h3 style="margin-top: 0; margin-bottom: 5px; color: var(--primary); font-size: 1.1rem; text-align: center;">Mixer</h3>
+            <!-- Mixer channels will be injected here -->
+        </div>
+
         <div style="display: flex; gap: 10px; margin-top: 10px;">
           <button class="btn btn-secondary" id="downloadBtn" style="flex: 1; justify-content: center;">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-            Download
-          </button>
-          <button class="btn btn-secondary" id="shareBtn" style="flex: 1; justify-content: center; display: none;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>
-            Share
+            Download Mix
           </button>
         </div>
     </div>
@@ -225,6 +230,7 @@
       <p style="margin-bottom: 10px;"><b>Auto-Pan:</b> Moves the sound rhythmically between the left and right speakers.</p>
       <p style="margin-bottom: 10px;"><b>Pitch Drift:</b> Gently bends the pitch up and down like an old, worn-out cassette tape.</p>
       <p style="margin-bottom: 10px;"><b>Reverse / Freeze:</b> Plays the audio backward, or freezes it into an infinite loop.</p>
+      <p style="margin-bottom: 10px;"><b>Infinite Generative Mode:</b> Creates a seamless eternal loop by crossfading the start and end of the audio. Also applies a slow, evolving automation to the filter to make the soundscape breathe over time.</p>
       
       <button id="closeHelpBtn" class="btn" style="margin-top: 20px;">Got it!</button>
     </div>

@@ -4,7 +4,7 @@ import numpy as np
 from scipy.io import wavfile
 import dsp
 
-def process_audio(wav_bytes_js, stretch_factor, effects_json, window_size=8192, region_start=0.0, region_end=-1.0, progress_cb=None):
+def process_audio(wav_bytes_js, stretch_factor, effects_json, window_size=8192, region_start=0.0, region_end=-1.0, infinite_mode=False, progress_cb=None):
     # wav_bytes_js is a memoryview or bytes passed from JS
     wav_bytes = bytes(wav_bytes_js)
     
@@ -48,6 +48,10 @@ def process_audio(wav_bytes_js, stretch_factor, effects_json, window_size=8192, 
     
     # Apply effects
     processed = dsp.apply_effects(stretched, sample_rate, effect_settings)
+    
+    # Apply Infinite Mode loop crossfade
+    if infinite_mode:
+        processed = dsp.build_loop_crossfade_audio(processed, sample_rate, crossfade_ms=3000.0)
     
     # Convert back to 16-bit PCM for web playback to save memory
     processed_int16 = np.clip(processed * 32767.0, -32768.0, 32767.0).astype(np.int16)
