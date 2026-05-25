@@ -306,6 +306,16 @@ document.addEventListener("DOMContentLoaded", () => {
         currentRegion = region;
     });
 
+    wsRegions.on('region-out', (region) => {
+        if (wavesurfer && region === currentRegion) {
+            // Only pause if the playback exited the region from the right side (end of the box)
+            // We use a small epsilon (0.05s) because of floating point inaccuracies during seek
+            if (wavesurfer.getCurrentTime() >= region.end - 0.05) {
+                wavesurfer.pause();
+            }
+        }
+    });
+
     // Worker messaging
     worker.onmessage = function(e) {
         const data = e.data;
