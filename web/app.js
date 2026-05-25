@@ -8,6 +8,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const playerContainer = document.getElementById("playerContainer");
     const player = document.getElementById("player");
     const downloadBtn = document.getElementById("downloadBtn");
+    const presetSelect = document.getElementById("presetSelect");
+    const surpriseBtn = document.getElementById("surpriseBtn");
     const themeSelect = document.getElementById("themeSelect");
     const qualitySelect = document.getElementById("qualitySelect");
     
@@ -40,6 +42,43 @@ document.addEventListener("DOMContentLoaded", () => {
             advancedPanel.style.display = "none";
             advancedToggle.textContent = "⚙️ Advanced Settings";
         }
+    });
+
+    // Helper to update slider and its display value
+    function updateSlider(name, value) {
+        if (ui[name + 'Slider']) {
+            ui[name + 'Slider'].value = value;
+            // Trigger input event to update label
+            ui[name + 'Slider'].dispatchEvent(new Event('input'));
+        }
+    }
+
+    // Presets
+    const presets = {
+        default: { stretch: 4, reverb: 0.5, shimmer: 0.3, lowpass: 6000, drive: 0.0, texture: 0.0, granular: 0.0, motion: 0.0 },
+        deep_ambient: { stretch: 12, reverb: 0.9, shimmer: 0.1, lowpass: 2000, drive: 0.1, texture: 0.2, granular: 0.0, motion: 0.1 },
+        glitchy_tape: { stretch: 3, reverb: 0.2, shimmer: 0.0, lowpass: 4000, drive: 0.6, texture: 0.4, granular: 0.8, motion: 0.7 },
+        shimmering_ice: { stretch: 8, reverb: 0.8, shimmer: 0.9, lowpass: 8000, drive: 0.0, texture: 0.5, granular: 0.2, motion: 0.4 }
+    };
+
+    presetSelect.addEventListener("change", (e) => {
+        const preset = presets[e.target.value];
+        if (preset) {
+            Object.keys(preset).forEach(key => updateSlider(key, preset[key]));
+        }
+    });
+
+    // Surprise Me
+    surpriseBtn.addEventListener("click", () => {
+        updateSlider('stretch', Math.floor(Math.random() * 15) + 2); // 2 to 16
+        updateSlider('reverb', (Math.random()).toFixed(2));
+        updateSlider('shimmer', (Math.random()).toFixed(2));
+        updateSlider('lowpass', Math.floor(Math.random() * 11500) + 500); // 500 to 12000
+        updateSlider('drive', (Math.random()).toFixed(2));
+        updateSlider('texture', (Math.random()).toFixed(2));
+        updateSlider('granular', (Math.random()).toFixed(2));
+        updateSlider('motion', (Math.random()).toFixed(2));
+        presetSelect.value = "default"; // Reset preset dropdown
     });
 
     let worker = new Worker("worker.js");
@@ -211,9 +250,27 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    // Download Button
-    downloadBtn.addEventListener("click", () => {
+    // Share / Download Button
+    downloadBtn.addEventListener("click", async () => {
         if (!currentBlob) return;
+        
+        const file = new File([currentBlob], "Findus_Stretched.wav", { type: 'audio/wav' });
+
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+                await navigator.share({
+                    title: 'FindusXStretch Audio',
+                    text: 'Check out this stretched audio I made!',
+                    files: [file]
+                });
+                return;
+            } catch (err) {
+                console.log("Share failed or cancelled:", err);
+                // Fallback to download below
+            }
+        }
+        
+        // Fallback standard download
         const a = document.createElement("a");
         a.href = URL.createObjectURL(currentBlob);
         a.download = "Findus_Stretched.wav";

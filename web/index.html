@@ -31,6 +31,16 @@
 
     <!-- Main Settings -->
     <div class="control-group">
+      <label>Presets:</label>
+      <select id="presetSelect">
+        <option value="default">Default</option>
+        <option value="deep_ambient">Deep Ambient</option>
+        <option value="glitchy_tape">Glitchy Tape</option>
+        <option value="shimmering_ice">Shimmering Ice</option>
+      </select>
+    </div>
+
+    <div class="control-group">
       <label>Stretch Factor: <span class="val" id="stretchVal">4x</span></label>
       <input type="range" id="stretchSlider" min="2" max="16" step="1" value="4">
     </div>
@@ -79,6 +89,8 @@
       </div>
     </div>
 
+    <button id="surpriseBtn" class="btn-text" style="font-size: 1.1rem; margin-bottom: 10px;">🎲 Surprise Me</button>
+
     <button class="btn" id="processBtn" disabled>
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3l14 9-14 9V3z"/></svg>
       Stretch Audio
@@ -89,8 +101,8 @@
     <div id="playerContainer" style="display:none; margin-top: 20px;">
         <audio id="player" controls style="width: 100%;"></audio>
         <button class="btn btn-secondary" id="downloadBtn" style="margin-top: 10px;">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-          Download WAV
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>
+          Share / Save
         </button>
     </div>
 
