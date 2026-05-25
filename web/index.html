@@ -178,10 +178,16 @@
     </div>
     <div id="playerContainer" style="display:none; margin-top: 20px;">
         <audio id="player" controls style="width: 100%;"></audio>
-        <button class="btn btn-secondary" id="downloadBtn" style="margin-top: 10px;">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>
-          Share / Save
-        </button>
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
+          <button class="btn btn-secondary" id="downloadBtn" style="flex: 1; justify-content: center;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+            Download
+          </button>
+          <button class="btn btn-secondary" id="shareBtn" style="flex: 1; justify-content: center; display: none;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>
+            Share
+          </button>
+        </div>
     </div>
 
   </div>

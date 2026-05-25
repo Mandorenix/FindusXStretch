@@ -433,27 +433,30 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    // Share / Download Button
-    downloadBtn.addEventListener("click", async () => {
-        if (!currentBlob) return;
-        
-        const file = new File([currentBlob], "Findus_Stretched.wav", { type: 'audio/wav' });
-
-        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-            try {
-                await navigator.share({
-                    title: 'FindusXStretch Audio',
-                    text: 'Check out this stretched audio I made!',
-                    files: [file]
-                });
-                return;
-            } catch (err) {
-                console.log("Share failed or cancelled:", err);
-                // Fallback to download below
+    // Share Button (Mobile/Supported devices)
+    const shareBtn = document.getElementById("shareBtn");
+    if (shareBtn && navigator.share && navigator.canShare) {
+        shareBtn.style.display = 'flex';
+        shareBtn.addEventListener("click", async () => {
+            if (!currentBlob) return;
+            const file = new File([currentBlob], "Findus_Stretched.wav", { type: 'audio/wav' });
+            if (navigator.canShare({ files: [file] })) {
+                try {
+                    await navigator.share({
+                        title: 'FindusXStretch Audio',
+                        text: 'Check out this stretched audio I made!',
+                        files: [file]
+                    });
+                } catch (err) {
+                    console.log("Share failed or cancelled:", err);
+                }
             }
-        }
-        
-        // Fallback standard download
+        });
+    }
+
+    // Direct Download Button
+    downloadBtn.addEventListener("click", () => {
+        if (!currentBlob) return;
         const a = document.createElement("a");
         a.href = URL.createObjectURL(currentBlob);
         a.download = "Findus_Stretched.wav";
