@@ -5,11 +5,13 @@ let isReady = false;
 
 async function initPyodide() {
     try {
+        postMessage({ type: 'STATUS', message: 'Downloading Engine Core...', progress: 10 });
         pyodide = await loadPyodide();
-        postMessage({ type: 'STATUS', message: 'Loading Python packages (numpy, scipy)...' });
+        
+        postMessage({ type: 'STATUS', message: 'Downloading DSP Libraries...', progress: 50 });
         await pyodide.loadPackage(['numpy', 'scipy']);
         
-        postMessage({ type: 'STATUS', message: 'Loading DSP engine...' });
+        postMessage({ type: 'STATUS', message: 'Initializing Ambient Engine...', progress: 90 });
         // Fetch and load dsp.py
         const dspResponse = await fetch("dsp.py");
         const dspCode = await dspResponse.text();
@@ -26,7 +28,7 @@ async function initPyodide() {
         `);
         
         isReady = true;
-        postMessage({ type: 'READY' });
+        postMessage({ type: 'READY', progress: 100 });
     } catch (err) {
         postMessage({ type: 'ERROR', error: err.message });
     }

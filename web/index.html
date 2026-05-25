@@ -20,13 +20,16 @@
 
   <div class="glass-panel">
     
+    <div id="waveformContainer" style="display: none; width: 100%; min-height: 80px; margin-bottom: 15px; border: 2px solid var(--glass-border); border-radius: var(--btn-radius); padding: 10px; background: rgba(0,0,0,0.2);">
+      <div id="waveform" style="width: 100%; min-height: 80px;"></div>
+    </div>
+
     <div class="upload-area" id="dropZone" onclick="document.getElementById('audioInput').click()">
       <div id="uploadPrompt">
-        <p style="font-weight:600; font-size:1.1rem; color:var(--text-main);">Tap to Upload Audio</p>
+        <p style="font-weight:600; font-size:1.1rem; color:var(--text-main);" id="uploadPromptText">Tap to Upload Audio</p>
         <p style="font-size:0.8rem; margin-top:5px; color:var(--text-muted);" id="fileName">Select a short WAV file</p>
       </div>
-      <div id="waveform" style="display: none; width: 100%; min-height: 80px;"></div>
-      <input type="file" id="audioInput" accept="audio/wav, audio/x-wav">
+      <input type="file" id="audioInput" accept="audio/wav, audio/x-wav" style="display: none;">
     </div>
 
     <!-- Main Settings -->

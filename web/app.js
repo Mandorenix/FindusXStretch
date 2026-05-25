@@ -202,6 +202,10 @@ document.addEventListener("DOMContentLoaded", () => {
         } else if (data.type === 'STATUS') {
             statusText.textContent = data.message;
             statusText.classList.add("pulse");
+            if (data.progress !== undefined) {
+                document.getElementById("progressContainer").style.display = "block";
+                document.getElementById("progressBar").style.width = data.progress + "%";
+            }
         } else if (data.type === 'progress') {
             const pct = Math.round(data.progress * 100);
             document.getElementById("progressContainer").style.display = "block";
@@ -239,8 +243,9 @@ document.addEventListener("DOMContentLoaded", () => {
     audioInput.addEventListener("change", (e) => {
         const file = e.target.files[0];
         if (file) {
-            uploadPrompt.style.display = "none";
-            waveformEl.style.display = "block";
+            document.getElementById("uploadPromptText").textContent = "Tap to Upload a Different File";
+            document.getElementById("fileName").textContent = file.name;
+            document.getElementById("waveformContainer").style.display = "block";
             
             const reader = new FileReader();
             reader.onload = function() {
