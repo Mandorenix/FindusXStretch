@@ -47,6 +47,8 @@ document.addEventListener("DOMContentLoaded", () => {
     let fileBuffer = null;
     let currentBlob = null;
     let wavesurfer = null;
+    let wsRegions = null;
+    let currentRegion = null;
 
     // Theme loading and switching
     function applyTheme(themeName) {
@@ -85,6 +87,25 @@ document.addEventListener("DOMContentLoaded", () => {
         barRadius: 3,
         responsive: true,
         height: 80,
+    });
+
+    // Initialize Regions Plugin
+    wsRegions = wavesurfer.registerPlugin(WaveSurfer.Regions.create());
+    
+    wavesurfer.on('decode', () => {
+        // Create default region over the whole file
+        wsRegions.clearRegions();
+        currentRegion = wsRegions.addRegion({
+            start: 0,
+            end: wavesurfer.getDuration(),
+            color: 'rgba(167, 139, 250, 0.3)',
+            resize: true,
+            drag: false
+        });
+    });
+
+    wsRegions.on('region-updated', (region) => {
+        currentRegion = region;
     });
 
     // Worker messaging
@@ -184,6 +205,8 @@ document.addEventListener("DOMContentLoaded", () => {
             wavBytes: fileBuffer,
             stretchFactor: parseFloat(ui.stretchSlider.value),
             windowSize: parseInt(qualitySelect.value),
+            regionStart: currentRegion ? currentRegion.start : 0,
+            regionEnd: currentRegion ? currentRegion.end : -1,
             effectsJson: JSON.stringify(effects)
         });
     });

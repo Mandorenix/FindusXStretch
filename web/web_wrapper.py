@@ -4,7 +4,7 @@ import numpy as np
 from scipy.io import wavfile
 import dsp
 
-def process_audio(wav_bytes_js, stretch_factor, effects_json, window_size=8192):
+def process_audio(wav_bytes_js, stretch_factor, effects_json, window_size=8192, region_start=0.0, region_end=-1.0):
     # wav_bytes_js is a memoryview or bytes passed from JS
     wav_bytes = bytes(wav_bytes_js)
     
@@ -22,6 +22,16 @@ def process_audio(wav_bytes_js, stretch_factor, effects_json, window_size=8192):
         audio_data = audio_data.astype(np.float64) / 2147483648.0
     elif audio_data.dtype == np.float32:
         audio_data = audio_data.astype(np.float64)
+        
+    # Crop audio
+    start_idx = int(region_start * sample_rate)
+    end_idx = int(region_end * sample_rate) if region_end > 0 else len(audio_data)
+    
+    # Ensure indices are valid
+    start_idx = max(0, min(start_idx, len(audio_data) - 1))
+    end_idx = max(start_idx + 1, min(end_idx, len(audio_data)))
+    
+    audio_data = audio_data[start_idx:end_idx]
         
     # Paulstretch
     settings = dsp.StretchSettings(window_size=window_size)

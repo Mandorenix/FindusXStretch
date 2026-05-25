@@ -8,6 +8,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icon.png">
   <script src="https://unpkg.com/wavesurfer.js@7/dist/wavesurfer.min.js"></script>
+  <script src="https://unpkg.com/wavesurfer.js@7/dist/plugins/regions.min.js"></script>
 </head>
 <body>
 
@@ -24,7 +25,7 @@
         <p style="font-weight:600; font-size:1.1rem; color:var(--text-main);">Tap to Upload Audio</p>
         <p style="font-size:0.8rem; margin-top:5px; color:var(--text-muted);" id="fileName">Select a short WAV file</p>
       </div>
-      <div id="waveform" style="display: none; width: 100%; height: 80px; pointer-events: none;"></div>
+      <div id="waveform" style="display: none; width: 100%; min-height: 80px;"></div>
       <input type="file" id="audioInput" accept="audio/wav, audio/x-wav">
     </div>
 

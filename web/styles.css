@@ -339,3 +339,23 @@ audio::-webkit-media-controls-time-remaining-display {
   margin-bottom: 20px;
   border: 1px solid var(--glass-border);
 }
+
+/* Landscape Mode Responsive Tweaks */
+@media (orientation: landscape) and (max-height: 500px) {
+  header {
+    margin: 10px 0;
+  }
+  .app-logo {
+    display: none; /* Hide logo to save space in landscape on phones */
+  }
+  .glass-panel {
+    max-width: 90%;
+    padding: 15px;
+  }
+  .upload-area {
+    padding: 15px 10px;
+  }
+  #waveform {
+    height: 120px !important; /* Make waveform taller in landscape */
+  }
+}
