@@ -81,6 +81,7 @@ class Launcher(tk.Tk):
             "🚀 Start & Dev": [
                 ("Start App", self.run_app, "Startar FINDUS>x<STRETCHING i bakgrunden utan en CMD-ruta."),
                 ("Start PWA (Light)", self.start_pwa, "Startar en lokal webbserver för mobila PWA-versionen och öppnar i webbläsaren."),
+                ("Deploy PWA (Upload)", self.deploy_pwa, "Laddar upp dina senaste ändringar till webben så de uppdateras på mobilen."),
                 ("Quick Start", self.quick_start, "Installerar bas-tillägg, kör tester och startar sedan appen."),
                 ("Python REPL", self.python_repl, "Öppnar en ren Python-tolk i ett nytt fönster för snabba tester."),
                 ("Open README", lambda: os.startfile("README.md"), "Öppnar projektets README-fil i standardredigeraren."),
@@ -287,6 +288,10 @@ class Launcher(tk.Tk):
             webbrowser.open("http://localhost:8000")
             self.after(0, self.log, "[Browser opened for PWA]")
         threading.Thread(target=open_browser, daemon=True).start()
+
+    def deploy_pwa(self):
+        self.log("> Deploying PWA to GitHub / Netlify...")
+        self.run_cmd('git add . && git commit -m "Auto-deploy update to PWA" && git push', show_console=True)
 
     def quick_start(self):
         self.run_cmd(f'"{self.python_cmd}" -m pip install -r requirements.txt && "{self.python_cmd}" -m pytest -q && "{self.python_cmd}" app.py')

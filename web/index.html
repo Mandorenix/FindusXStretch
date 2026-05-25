@@ -49,6 +49,14 @@
     
     <div id="advancedPanel" class="advanced-panel" style="display: none;">
       <div class="control-group">
+        <label>Render Quality:</label>
+        <select id="qualitySelect">
+          <option value="4096">Fast Preview (Low Quality)</option>
+          <option value="8192" selected>Standard (Balanced)</option>
+          <option value="16384">High Quality (Slow)</option>
+        </select>
+      </div>
+      <div class="control-group">
         <label>Lowpass Cutoff: <span class="val" id="lowpassVal">6000 Hz</span></label>
         <input type="range" id="lowpassSlider" min="500" max="12000" step="100" value="6000">
       </div>
@@ -85,6 +93,18 @@
         </button>
     </div>
 
+  </div>
+
+  <div style="margin-top: 20px; width: 100%; max-width: 450px;">
+    <label style="display: block; margin-bottom: 5px; font-size: 0.9rem; color: var(--text-muted); font-weight: 600;">App Theme:</label>
+    <select id="themeSelect">
+      <option value="default">Default (Glass Purple)</option>
+      <option value="studio">Studio</option>
+      <option value="8bit">8-bit</option>
+      <option value="c64">C64</option>
+      <option value="amiga">Amiga</option>
+      <option value="matrix">Matrix</option>
+    </select>
   </div>
 
   <script src="app.js"></script>

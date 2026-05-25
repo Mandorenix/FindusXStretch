@@ -201,6 +201,7 @@ echo %CLR_MENU%   [21]%CLR_RESET% Write diagnostics report
 echo %CLR_MENU%   [22]%CLR_RESET% Hard Reset ^(Nuke .venv, caches, build, dist^)
 echo %CLR_MENU%   [23]%CLR_RESET% Code Quality Check ^(Ruff Linter^)
 echo %CLR_MENU%   [24]%CLR_RESET% Test PWA Light Version ^(http.server^)
+echo %CLR_MENU%   [25]%CLR_RESET% Deploy PWA to Web/Mobile ^(Git Push^)
 echo %CLR_MENU%   [0]%CLR_RESET% Exit
 echo.
 set /p choice=Choose an option: 
@@ -229,6 +230,7 @@ if "%choice%"=="21" goto diagnostics_report
 if "%choice%"=="22" goto hard_reset
 if "%choice%"=="23" goto code_quality_check
 if "%choice%"=="24" goto start_pwa
+if "%choice%"=="25" goto deploy_pwa
 if "%choice%"=="0" (
     echo %CLR_OK%Goodbye!%CLR_RESET%
     endlocal
@@ -695,4 +697,16 @@ start cmd /k "cd web & %PYTHON_CMD% -m http.server 8000"
 timeout /t 2 >nul
 start http://localhost:8000
 goto menu
+
+:deploy_pwa
+echo.
+echo %CLR_INFO%Laddar upp de senaste aendringarna till GitHub (Netlify bygger om)...%CLR_RESET%
+git add .
+git commit -m "Auto-deploy update to PWA"
+git push
+echo.
+echo %CLR_OK%Klart! Netlify uppdaterar appen inom nagon minut.%CLR_RESET%
+pause
+goto menu
+
 

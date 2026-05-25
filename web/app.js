@@ -8,6 +8,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const playerContainer = document.getElementById("playerContainer");
     const player = document.getElementById("player");
     const downloadBtn = document.getElementById("downloadBtn");
+    const themeSelect = document.getElementById("themeSelect");
+    const qualitySelect = document.getElementById("qualitySelect");
     
     // Sliders & Vals
     const binds = [
@@ -46,11 +48,38 @@ document.addEventListener("DOMContentLoaded", () => {
     let currentBlob = null;
     let wavesurfer = null;
 
+    // Theme loading and switching
+    function applyTheme(themeName) {
+        document.documentElement.setAttribute('data-theme', themeName);
+        localStorage.setItem('findusTheme', themeName);
+        if (wavesurfer) {
+            // Read CSS variables
+            const style = getComputedStyle(document.documentElement);
+            const waveColor = style.getPropertyValue('--waveform-wave').trim() || 'rgba(255, 255, 255, 0.4)';
+            const progressColor = style.getPropertyValue('--waveform-progress').trim() || '#8b5cf6';
+            
+            wavesurfer.setOptions({
+                waveColor: waveColor,
+                progressColor: progressColor
+            });
+        }
+    }
+
+    const savedTheme = localStorage.getItem('findusTheme') || 'default';
+    themeSelect.value = savedTheme;
+    // We apply it immediately to document, but wavesurfer isn't created yet
+    document.documentElement.setAttribute('data-theme', savedTheme);
+
+    themeSelect.addEventListener('change', (e) => {
+        applyTheme(e.target.value);
+    });
+
     // Init Wavesurfer
+    const initialStyle = getComputedStyle(document.documentElement);
     wavesurfer = WaveSurfer.create({
         container: '#waveform',
-        waveColor: 'rgba(255, 255, 255, 0.4)',
-        progressColor: '#8b5cf6',
+        waveColor: initialStyle.getPropertyValue('--waveform-wave').trim() || 'rgba(255, 255, 255, 0.4)',
+        progressColor: initialStyle.getPropertyValue('--waveform-progress').trim() || '#8b5cf6',
         cursorColor: 'transparent',
         barWidth: 2,
         barRadius: 3,
@@ -154,6 +183,7 @@ document.addEventListener("DOMContentLoaded", () => {
             type: 'PROCESS',
             wavBytes: fileBuffer,
             stretchFactor: parseFloat(ui.stretchSlider.value),
+            windowSize: parseInt(qualitySelect.value),
             effectsJson: JSON.stringify(effects)
         });
     });

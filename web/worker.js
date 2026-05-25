@@ -39,13 +39,20 @@ self.onmessage = async (e) => {
     }
     
     if (e.data.type === 'PROCESS') {
-        const { wavBytes, stretchFactor, effectsJson } = e.data;
+        const { wavBytes } = e.data;
+        const stretchFactor = e.data.stretchFactor || 8.0;
+        const effectsJson = e.data.effectsJson || "{}";
+        const windowSize = e.data.windowSize || 8192;
+
+        self.postMessage({ type: 'progress', message: 'Processing audio through Python...' });
         
         try {
-            postMessage({ type: 'STATUS', message: 'Processing audio (this may take a while)...' });
-            // Call the python function
-            const process_audio = pyodide.globals.get('web_wrapper').process_audio;
-            const resultBytes = process_audio(wavBytes, stretchFactor, effectsJson);
+            // Load bytes into Pyodide
+            const js_array = new Uint8Array(wavBytes);
+            
+            // Call Python function
+            const web_wrapper = pyodide.globals.get('web_wrapper');
+            const resultBytes = web_wrapper.process_audio(js_array, stretchFactor, effectsJson, windowSize);
             
             const jsArray = resultBytes.toJs();
             
