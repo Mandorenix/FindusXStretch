@@ -1,0 +1,12 @@
+# Optional packages for FINDUS>x<STRETCHING
+# Install with:
+#   python -m pip install -r requirements-optional.txt
+#
+# Recommended now
+# - pyqtgraph: faster waveform/visual plotting for future UI improvements
+# - pyinstaller: build a Windows executable for sharing the app
+# - sounddevice: advanced Windows audio routing via PortAudio host APIs such as WASAPI, WDM-KS, and ASIO when available
+
+pyqtgraph>=0.13.7
+pyinstaller>=6.16
+sounddevice>=0.5.3

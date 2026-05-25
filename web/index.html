@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FindusXStretch Light</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌊</text></svg>">
+  <script src="https://unpkg.com/wavesurfer.js@7/dist/wavesurfer.min.js"></script>
+</head>
+<body>
+
+  <header>
+    <h1>FindusXStretch</h1>
+    <p>Mobile Ambient Engine</p>
+  </header>
+
+  <div class="glass-panel">
+    
+    <div class="upload-area" id="dropZone" onclick="document.getElementById('audioInput').click()">
+      <div id="uploadPrompt">
+        <p style="font-weight:600; font-size:1.1rem; color:var(--text-main);">Tap to Upload Audio</p>
+        <p style="font-size:0.8rem; margin-top:5px; color:var(--text-muted);" id="fileName">Select a short WAV file</p>
+      </div>
+      <div id="waveform" style="display: none; width: 100%; height: 80px; pointer-events: none;"></div>
+      <input type="file" id="audioInput" accept="audio/wav, audio/x-wav">
+    </div>
+
+    <!-- Main Settings -->
+    <div class="control-group">
+      <label>Stretch Factor: <span class="val" id="stretchVal">4x</span></label>
+      <input type="range" id="stretchSlider" min="2" max="16" step="1" value="4">
+    </div>
+
+    <div class="control-group">
+      <label>Reverb: <span class="val" id="reverbVal">0.5</span></label>
+      <input type="range" id="reverbSlider" min="0" max="1" step="0.1" value="0.5">
+    </div>
+    
+    <div class="control-group">
+      <label>Shimmer: <span class="val" id="shimmerVal">0.3</span></label>
+      <input type="range" id="shimmerSlider" min="0" max="1" step="0.1" value="0.3">
+    </div>
+
+    <!-- Advanced Settings Toggle -->
+    <button id="advancedToggle" class="btn-text">⚙️ Advanced Settings</button>
+    
+    <div id="advancedPanel" class="advanced-panel" style="display: none;">
+      <div class="control-group">
+        <label>Lowpass Cutoff: <span class="val" id="lowpassVal">6000 Hz</span></label>
+        <input type="range" id="lowpassSlider" min="500" max="12000" step="100" value="6000">
+      </div>
+      <div class="control-group">
+        <label>Drive: <span class="val" id="driveVal">0.0</span></label>
+        <input type="range" id="driveSlider" min="0" max="1" step="0.1" value="0.0">
+      </div>
+      <div class="control-group">
+        <label>Texture: <span class="val" id="textureVal">0.0</span></label>
+        <input type="range" id="textureSlider" min="0" max="1" step="0.1" value="0.0">
+      </div>
+      <div class="control-group">
+        <label>Granular: <span class="val" id="granularVal">0.0</span></label>
+        <input type="range" id="granularSlider" min="0" max="1" step="0.1" value="0.0">
+      </div>
+      <div class="control-group">
+        <label>Motion: <span class="val" id="motionVal">0.0</span></label>
+        <input type="range" id="motionSlider" min="0" max="1" step="0.1" value="0.0">
+      </div>
+    </div>
+
+    <button class="btn" id="processBtn" disabled>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3l14 9-14 9V3z"/></svg>
+      Stretch Audio
+    </button>
+    
+    <div class="status pulse" id="statusText">Initializing Engine...</div>
+
+    <div id="playerContainer" style="display:none; margin-top: 20px;">
+        <audio id="player" controls style="width: 100%;"></audio>
+        <button class="btn btn-secondary" id="downloadBtn" style="margin-top: 10px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          Download WAV
+        </button>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

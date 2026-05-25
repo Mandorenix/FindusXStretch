@@ -1,0 +1,273 @@
+FINDUS>x<STRETCHING Diagnostics Report
+Generated: 2026-05-25T11:33:35
+
+=== System ===
+python: 3.13.7 (tags/v3.13.7:bcee1c3, Aug 14 2025, 14:15:11) [MSC v.1944 64 bit (AMD64)]
+executable: C:\Python313\python.exe
+platform: Windows-10-10.0.19045-SP0
+cwd: D:\Mina_Progrma\FindusXStretch
+project_root: D:\Mina_Progrma\FindusXStretch
+qt_qpa_platform: (not set)
+
+=== Imports ===
+numpy: OK (2.4.2)
+scipy: OK (1.17.0)
+soundfile: OK (0.13.1)
+PySide6: OK (6.10.2)
+pytest: OK (8.4.2)
+pyqtgraph: OK (0.14.0)
+PyInstaller: OK (6.19.0)
+sounddevice: OK (0.5.5)
+
+=== Project State ===
+project_root: D:\Mina_Progrma\FindusXStretch
+state_path: D:\Mina_Progrma\FindusXStretch\findus_stretching_state.json
+presets_path: D:\Mina_Progrma\FindusXStretch\findus_stretching_presets.json
+dist_exe_exists: True
+installer_exists: True
+
+state_file_contents:
+{
+  "input_path": "D:/16-03-2026 16.16 v3 (1).wav",
+  "output_path": "C:\\Users\\findu\\AppData\\Local\\Temp\\pytest-of-findu\\pytest-140\\test_loading_project_with_miss0\\render.wav",
+  "recent_source_paths": [
+    "D:/16-03-2026 16.16 v3 (1).wav",
+    "D:/Musik Projekt/16-03-2026 16.16 v5 Stems/16-03-2026 16.16 v5 Stems v1/4 Guitar.wav",
+    "C:\\Users\\findu\\AppData\\Local\\Temp\\pytest-of-findu\\pytest-1\\test_toggle_ab_replays_cached_0\\source.wav"
+  ],
+  "current_project_path": "C:\\Users\\findu\\AppData\\Local\\Temp\\pytest-of-findu\\pytest-140\\test_loading_project_with_miss0\\missing.findusstretch.json",
+  "render_output_mode": "dry",
+  "recording_output_path": "D:\\Mina Progrma\\FindusXStretch\\findus_recording_20260314_194638_01_01.wav",
+  "audio_backend": "portaudio",
+  "host_api_name": "MME",
+  "recording_input_device_id": "pa:1",
+  "preview_output_device_id": "pa:3",
+  "recording_device_id": "pa:1",
+  "recording_sample_rate": 48000,
+  "recording_input_channels": 1,
+  "preview_output_channels": 1,
+  "recording_channels": 1,
+  "auto_load_recordings": true,
+  "active_workspace_tab": "Stretch",
+  "recent_takes": [
+    {
+      "path": "D:\\Mina Progrma\\FindusXStretch\\findus_recording_20260314_194638_01.wav",
+      "duration_seconds": 4.004,
+      "sample_rate": 48000,
+      "timestamp": "2026-05-25T10:25:34"
+    },
+    {
+      "path": "D:\\Mina Progrma\\FindusXStretch\\findus_recording_20260314_194638.wav",
+      "duration_seconds": 5.59,
+      "sample_rate": 48000,
+      "timestamp": "2026-05-25T10:25:19"
+    }
+  ],
+  "preview_start": 9.17,
+  "preview_length": 3.0,
+  "stretch_factor": 10.0,
+  "quality_profile": "Medium",
+  "effects": {
+    "filter_mode": "Low-pass",
+    "filter_enabled": true,
+    "reverb_amount": 0.27,
+    "reverb_enabled": true,
+    "lowpass_hz": 2600.0,
+    "drive_amount": 0.3,
+    "drive_enabled": true,
+    "chorus_amount": 0.14,
+    "chorus_enabled": true,
+    "texture_amount": 0.0,
+    "texture_enabled": true,
+    "motion_amount": 0.0,
+    "motion_enabled": true,
+    "pitch_drift_amount": 0.0,
+    "pitch_drift_enabled": true,
+    "bloom_amount": 0.0,
+    "bloom_enabled": true,
+    "granular_amount": 0.0,
+    "granular_enabled": true,
+    "delay_amount": 0.31,
+    "delay_enabled": true,
+    "autopan_amount": 0.21,
+    "autopan_enabled": true,
+    "stereo_width": 1.0,
+    "reverse": false,
+    "freeze_enabled": false,
+    "shimmer_amount": 0.0,
+    "shimmer_enabled": true,
+    "wet_dry": 0.7,
+    "input_gain_db": 0.0,
+    "limiter_enabled": false
+  },
+  "selected_preset_name": "Tape Orbit",
+  "compare_slot_a": {
+    "stretch_factor": 12.0,
+    "quality_profile": "Medium",
+    "preview_length": 0.05,
+    "effects": {
+      "filter_mode": "High-pass",
+      "filter_enabled": true,
+      "reverb_amount": 0.28,
+      "reverb_enabled": true,
+      "lowpass_hz": 2200.0,
+      "drive_amount": 0.0,
+      "drive_enabled": true,
+      "chorus_amount": 0.46,
+      "chorus_enabled": true,
+      "texture_amount": 0.08,
+      "texture_enabled": true,
+      "motion_amount": 0.22,
+      "motion_enabled": true,
+      "pitch_drift_amount": 0.12,
+      "pitch_drift_enabled": true,
+      "bloom_amount": 0.42,
+      "bloom_enabled": true,
+      "granular_amount": 0.0,
+      "granular_enabled": true,
+      "delay_amount": 0.18,
+      "delay_enabled": true,
+      "autopan_amount": 0.12,
+      "autopan_enabled": true,
+      "stereo_width": 1.55,
+      "reverse": false,
+      "freeze_enabled": false,
+      "shimmer_amount": 0.48,
+      "shimmer_enabled": true,
+      "wet_dry": 0.78,
+      "input_gain_db": 0.0,
+      "limiter_enabled": false
+    },
+    "region_start": 0.7499773242630385,
+    "region_end": 0.7599773242630385,
+    "preset_name": "Orbit Choir"
+  },
+  "compare_slot_b": {
+    "stretch_factor": 24.0,
+    "quality_profile": "Medium",
+    "preview_length": 0.05,
+    "effects": {
+      "filter_mode": "High-pass",
+      "filter_enabled": true,
+      "reverb_amount": 0.28,
+      "reverb_enabled": true,
+      "lowpass_hz": 2200.0,
+      "drive_amount": 0.0,
+      "drive_enabled": true,
+      "chorus_amount": 0.46,
+      "chorus_enabled": true,
+      "texture_amount": 0.08,
+      "texture_enabled": true,
+      "motion_amount": 0.22,
+      "motion_enabled": true,
+      "pitch_drift_amount": 0.12,
+      "pitch_drift_enabled": true,
+      "bloom_amount": 0.42,
+      "bloom_enabled": true,
+      "granular_amount": 0.0,
+      "granular_enabled": true,
+      "delay_amount": 0.18,
+      "delay_enabled": true,
+      "autopan_amount": 0.12,
+      "autopan_enabled": true,
+      "stereo_width": 1.55,
+      "reverse": false,
+      "freeze_enabled": false,
+      "shimmer_amount": 0.48,
+      "shimmer_enabled": true,
+      "wet_dry": 0.78,
+      "input_gain_db": 0.0,
+      "limiter_enabled": false
+    },
+    "region_start": 0.7499773242630385,
+    "region_end": 0.7599773242630385,
+    "preset_name": "Orbit Choir"
+  },
+  "render_queue": [],
+  "recent_project_paths": [],
+  "favorite_factory_presets": [
+    "Dark Drone"
+  ],
+  "waveform_region_start": 9.17,
+  "waveform_region_end": 12.17,
+  "loop_enabled": false,
+  "loop_crossfade_ms": 80,
+  "theme_name": "amber",
+  "ui_scale_percent": 125
+}
+
+preset_file_contents:
+{
+  "version": 1,
+  "user_presets": [
+    {
+      "name": "Tagged User",
+      "stretch_factor": 24.0,
+      "quality_profile": "Medium",
+      "preview_length": 0.05,
+      "effects": {
+        "filter_mode": "High-pass",
+        "filter_enabled": true,
+        "reverb_amount": 0.44,
+        "reverb_enabled": true,
+        "lowpass_hz": 2200.0,
+        "drive_amount": 0.0,
+        "drive_enabled": true,
+        "chorus_amount": 0.46,
+        "chorus_enabled": true,
+        "texture_amount": 0.08,
+        "texture_enabled": true,
+        "motion_amount": 0.22,
+        "motion_enabled": true,
+        "pitch_drift_amount": 0.12,
+        "pitch_drift_enabled": true,
+        "bloom_amount": 0.42,
+        "bloom_enabled": true,
+        "granular_amount": 0.0,
+        "granular_enabled": true,
+        "delay_amount": 0.18,
+        "delay_enabled": true,
+        "autopan_amount": 0.12,
+        "autopan_enabled": true,
+        "stereo_width": 1.55,
+        "reverse": false,
+        "freeze_enabled": false,
+        "shimmer_amount": 0.48,
+        "shimmer_enabled": true,
+        "wet_dry": 0.78,
+        "input_gain_db": 0.0,
+        "limiter_enabled": false
+      },
+      "tags": [
+        "weird",
+        "choir"
+      ],
+      "favorite": false
+    }
+  ]
+}
+
+=== Audio ===
+portaudio_available: True
+auto_active_backend: portaudio
+auto_host_apis: MME, Windows DirectSound, Windows WASAPI, Windows WDM-KS
+auto_inputs: Microsoft Sound Mapper - Input | Intern mikrofon (Conexant ISST  | Mikrofon (Steam Streaming Micro | Primär drivrutin för ljudinfångst | Intern mikrofon (Conexant ISST Audio)
+auto_outputs: Microsoft Sound Mapper - Output | Högtalare (Conexant ISST Audio) | Högtalare (Steam Streaming Spea | Högtalare (Steam Streaming Micr | Primär ljuddrivrutin
+portaudio_active_backend: portaudio
+portaudio_host_apis: MME, Windows DirectSound, Windows WASAPI, Windows WDM-KS
+portaudio_inputs: Microsoft Sound Mapper - Input | Intern mikrofon (Conexant ISST  | Mikrofon (Steam Streaming Micro | Primär drivrutin för ljudinfångst | Intern mikrofon (Conexant ISST Audio)
+portaudio_outputs: Microsoft Sound Mapper - Output | Högtalare (Conexant ISST Audio) | Högtalare (Steam Streaming Spea | Högtalare (Steam Streaming Micr | Primär ljuddrivrutin
+qt_active_backend: qt
+qt_host_apis: Qt Multimedia
+qt_inputs: Intern mikrofon (Conexant ISST Audio) | Mikrofon (Steam Streaming Microphone)
+qt_outputs: Högtalare (Steam Streaming Speakers) | Högtalare (Steam Streaming Microphone) | Högtalare (Conexant ISST Audio)
+
+=== GUI ===
+mainwindow_init: OK
+workspace_tabs: 5
+current_tab: Stretch
+theme: amber
+ui_scale_percent: 125
+
+=== Done ===
+Copy the contents of diagnostics_report.txt into the chat when something breaks.
