@@ -22,6 +22,15 @@
     
     <div id="waveformContainer" style="display: none; width: 100%; min-height: 80px; margin-bottom: 15px; border: 2px solid var(--glass-border); border-radius: var(--btn-radius); padding: 10px; background: rgba(0,0,0,0.2);">
       <div id="waveform" style="width: 100%; min-height: 80px;"></div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+        <button id="playRegionBtn" class="btn-secondary" style="padding: 8px 16px; font-size: 0.9rem; border: none; border-radius: var(--btn-radius); cursor: pointer; color: var(--text-main); display: flex; align-items: center; justify-content: center; min-width: 100px;">
+          ▶ Preview
+        </button>
+        <div style="display: flex; gap: 8px;">
+          <button id="zoomOutBtn" class="btn-secondary" style="padding: 8px 16px; font-size: 1.1rem; border: none; border-radius: var(--btn-radius); cursor: pointer; color: var(--text-main); font-weight: bold;">-</button>
+          <button id="zoomInBtn" class="btn-secondary" style="padding: 8px 16px; font-size: 1.1rem; border: none; border-radius: var(--btn-radius); cursor: pointer; color: var(--text-main); font-weight: bold;">+</button>
+        </div>
+      </div>
     </div>
 
     <div class="upload-area" id="dropZone" onclick="document.getElementById('audioInput').click()">
@@ -34,9 +43,13 @@
 
     <!-- Main Settings -->
     <div class="control-group">
-      <label>Presets:</label>
+      <label style="display: flex; justify-content: space-between; align-items: center;">
+        <span>Presets:</span>
+        <button id="savePresetBtn" class="btn-secondary" style="padding: 4px 8px; font-size: 0.8rem; border-radius: 4px; cursor: pointer; border: none; color: var(--text-main);">💾 Save</button>
+      </label>
       <select id="presetSelect">
-        <option value="default">Default</option>
+        <option value="original">Original (No FX, 1x)</option>
+        <option value="default" selected>Default</option>
         <option value="deep_ambient">Deep Ambient</option>
         <option value="glitchy_tape">Glitchy Tape</option>
         <option value="shimmering_ice">Shimmering Ice</option>
@@ -45,7 +58,7 @@
 
     <div class="control-group">
       <label>Stretch Factor: <span class="val" id="stretchVal">4x</span></label>
-      <input type="range" id="stretchSlider" min="2" max="16" step="1" value="4">
+      <input type="range" id="stretchSlider" min="1" max="16" step="1" value="4">
     </div>
 
     <div class="control-group">

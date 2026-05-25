@@ -76,22 +76,65 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Presets
     const presets = {
-        default: { stretch: 4, reverb: 0.5, shimmer: 0.3, lowpass: 6000, drive: 0.0, texture: 0.0, granular: 0.0, motion: 0.0, bloom: 0.0, delay: 0.0, chorus: 0.0, stereo_width: 1.0, autopan: 0.0, pitch_drift: 0.0 },
-        deep_ambient: { stretch: 12, reverb: 0.9, shimmer: 0.1, lowpass: 2000, drive: 0.1, texture: 0.2, granular: 0.0, motion: 0.1, bloom: 0.5, delay: 0.4, chorus: 0.2, stereo_width: 1.5, autopan: 0.3, pitch_drift: 0.1 },
-        glitchy_tape: { stretch: 3, reverb: 0.2, shimmer: 0.0, lowpass: 4000, drive: 0.6, texture: 0.4, granular: 0.8, motion: 0.7, bloom: 0.0, delay: 0.2, chorus: 0.0, stereo_width: 0.8, autopan: 0.0, pitch_drift: 0.8 },
-        shimmering_ice: { stretch: 8, reverb: 0.8, shimmer: 0.9, lowpass: 8000, drive: 0.0, texture: 0.5, granular: 0.2, motion: 0.4, bloom: 0.3, delay: 0.6, chorus: 0.5, stereo_width: 2.0, autopan: 0.5, pitch_drift: 0.0 }
+        original: { stretch: 1, reverb: 0.0, shimmer: 0.0, lowpass: 12000, drive: 0.0, texture: 0.0, granular: 0.0, motion: 0.0, bloom: 0.0, delay: 0.0, chorus: 0.0, stereo_width: 1.0, autopan: 0.0, pitch_drift: 0.0, reverse: false, freeze: false },
+        default: { stretch: 4, reverb: 0.5, shimmer: 0.3, lowpass: 6000, drive: 0.0, texture: 0.0, granular: 0.0, motion: 0.0, bloom: 0.0, delay: 0.0, chorus: 0.0, stereo_width: 1.0, autopan: 0.0, pitch_drift: 0.0, reverse: false, freeze: false },
+        deep_ambient: { stretch: 12, reverb: 0.9, shimmer: 0.1, lowpass: 2000, drive: 0.1, texture: 0.2, granular: 0.0, motion: 0.1, bloom: 0.5, delay: 0.4, chorus: 0.2, stereo_width: 1.5, autopan: 0.3, pitch_drift: 0.1, reverse: false, freeze: false },
+        glitchy_tape: { stretch: 3, reverb: 0.2, shimmer: 0.0, lowpass: 4000, drive: 0.6, texture: 0.4, granular: 0.8, motion: 0.7, bloom: 0.0, delay: 0.2, chorus: 0.0, stereo_width: 0.8, autopan: 0.0, pitch_drift: 0.8, reverse: false, freeze: false },
+        shimmering_ice: { stretch: 8, reverb: 0.8, shimmer: 0.9, lowpass: 8000, drive: 0.0, texture: 0.5, granular: 0.2, motion: 0.4, bloom: 0.3, delay: 0.6, chorus: 0.5, stereo_width: 2.0, autopan: 0.5, pitch_drift: 0.0, reverse: false, freeze: false }
     };
+    
+    // Load custom presets
+    const savedPresets = JSON.parse(localStorage.getItem('findusPresets') || '{}');
+    Object.assign(presets, savedPresets);
+    
+    // Populate select with custom presets
+    Object.keys(savedPresets).forEach(key => {
+        const option = document.createElement('option');
+        option.value = key;
+        option.textContent = key;
+        presetSelect.appendChild(option);
+    });
 
     presetSelect.addEventListener("change", (e) => {
         const preset = presets[e.target.value];
         if (preset) {
-            Object.keys(preset).forEach(key => updateSlider(key, preset[key]));
-            if (e.target.value === 'default') {
-                reverseToggle.checked = false;
-                freezeToggle.checked = false;
-            }
+            Object.keys(preset).forEach(key => {
+                if (key !== 'reverse' && key !== 'freeze') {
+                    updateSlider(key, preset[key]);
+                }
+            });
+            if (preset.reverse !== undefined) reverseToggle.checked = preset.reverse;
+            if (preset.freeze !== undefined) freezeToggle.checked = preset.freeze;
         }
     });
+
+    const savePresetBtn = document.getElementById('savePresetBtn');
+    if (savePresetBtn) {
+        savePresetBtn.addEventListener('click', () => {
+            const name = prompt("Enter a name for your preset:");
+            if (!name) return;
+            
+            const currentSettings = {};
+            binds.forEach(b => {
+                if (ui[b + 'Slider']) {
+                    currentSettings[b] = parseFloat(ui[b + 'Slider'].value);
+                }
+            });
+            currentSettings.reverse = reverseToggle.checked;
+            currentSettings.freeze = freezeToggle.checked;
+            
+            presets[name] = currentSettings;
+            const customPresets = JSON.parse(localStorage.getItem('findusPresets') || '{}');
+            customPresets[name] = currentSettings;
+            localStorage.setItem('findusPresets', JSON.stringify(customPresets));
+            
+            const option = document.createElement('option');
+            option.value = name;
+            option.textContent = name;
+            presetSelect.appendChild(option);
+            presetSelect.value = name;
+        });
+    }
 
     // Surprise Me
     surpriseBtn.addEventListener("click", () => {
@@ -178,6 +221,51 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     let currentZoom = 50;
+    
+    // Zoom Buttons
+    const zoomInBtn = document.getElementById('zoomInBtn');
+    const zoomOutBtn = document.getElementById('zoomOutBtn');
+    
+    if (zoomInBtn) {
+        zoomInBtn.addEventListener('click', () => {
+            if (!wavesurfer) return;
+            currentZoom = Math.min(currentZoom * 1.5, 2000);
+            wavesurfer.zoom(currentZoom);
+        });
+    }
+    
+    if (zoomOutBtn) {
+        zoomOutBtn.addEventListener('click', () => {
+            if (!wavesurfer) return;
+            currentZoom = Math.max(10, currentZoom / 1.5);
+            wavesurfer.zoom(currentZoom);
+        });
+    }
+    
+    // Preview Button
+    const playRegionBtn = document.getElementById('playRegionBtn');
+    if (playRegionBtn) {
+        playRegionBtn.addEventListener('click', () => {
+            if (!wavesurfer) return;
+            if (wavesurfer.isPlaying()) {
+                wavesurfer.pause();
+            } else {
+                if (currentRegion) {
+                    currentRegion.play();
+                } else {
+                    wavesurfer.play();
+                }
+            }
+        });
+    }
+
+    wavesurfer.on('pause', () => {
+        if (playRegionBtn) playRegionBtn.innerHTML = "▶ Preview";
+    });
+    wavesurfer.on('play', () => {
+        if (playRegionBtn) playRegionBtn.innerHTML = "⏸ Pause";
+    });
+
     waveformEl.addEventListener('wheel', (e) => {
         if (!wavesurfer) return;
         e.preventDefault();

@@ -109,10 +109,11 @@ def paulstretch_channel(
 ) -> np.ndarray:
     if settings is None:
         settings = StretchSettings()
-    if stretch_factor <= 1.0:
-        raise ValueError("stretch_factor must be greater than 1.0.")
-
+    
     samples = np.asarray(channel, dtype=np.float32).reshape(-1)
+    if stretch_factor <= 1.0:
+        return samples.copy()
+
     if samples.size == 0:
         raise ValueError("Input audio is empty.")
 
@@ -161,6 +162,9 @@ def paulstretch_audio(
         settings = StretchSettings()
 
     array = np.asarray(audio, dtype=np.float32)
+    if stretch_factor <= 1.0:
+        return array.copy()
+
     if array.ndim == 1:
         return paulstretch_channel(
             array,
