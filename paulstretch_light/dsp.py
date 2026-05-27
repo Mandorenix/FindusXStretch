@@ -65,6 +65,14 @@ class EffectSettings:
     wet_dry: float = 1.0
     input_gain_db: float = 0.0
     limiter_enabled: bool = False
+    tremolo_amount: float = 0.0
+    tremolo_enabled: bool = True
+    bitcrush_amount: float = 0.0
+    bitcrush_enabled: bool = True
+    phaser_amount: float = 0.0
+    phaser_enabled: bool = True
+    sub_bass_amount: float = 0.0
+    sub_bass_enabled: bool = True
 
 
 @dataclass(frozen=True)
@@ -240,6 +248,10 @@ def apply_effects(
     wet = apply_delay(wet, sample_rate, effects.delay_amount if effects.delay_enabled else 0.0)
     wet = apply_motion(wet, sample_rate, effects.motion_amount if effects.motion_enabled else 0.0)
     wet = apply_autopan(wet, sample_rate, effects.autopan_amount if effects.autopan_enabled else 0.0)
+    wet = apply_tremolo(wet, sample_rate, effects.tremolo_amount if effects.tremolo_enabled else 0.0)
+    wet = apply_bitcrush(wet, effects.bitcrush_amount if effects.bitcrush_enabled else 0.0)
+    wet = apply_phaser(wet, sample_rate, effects.phaser_amount if effects.phaser_enabled else 0.0)
+    wet = apply_sub_bass(wet, sample_rate, effects.sub_bass_amount if effects.sub_bass_enabled else 0.0)
     wet = apply_stereo_width(wet, effects.stereo_width)
     if effects.reverse:
         wet = reverse_audio(wet)
@@ -475,6 +487,106 @@ def apply_motion(audio: np.ndarray, sample_rate: int, amount: float) -> np.ndarr
     else:
         shaped = moving * envelope[:, None]
     return normalize_audio((moving * (1.0 - 0.25 * mix)) + (shaped * (0.25 * mix)))
+
+
+def apply_tremolo(audio: np.ndarray, sample_rate: int, amount: float) -> np.ndarray:
+    array = np.asarray(audio, dtype=np.float64)
+    mix = float(np.clip(amount, 0.0, 1.0))
+    if mix <= 0.0:
+        return array.copy()
+
+    phase = np.linspace(0.0, array.shape[0] / sample_rate, array.shape[0], endpoint=False)
+    rate = 2.0 + (6.0 * mix)
+    lfo = 0.5 + 0.5 * np.sin(2.0 * np.pi * rate * phase)
+    
+    depth = 0.2 + (0.8 * mix)
+    envelope = 1.0 - depth + (depth * lfo)
+    
+    if array.ndim == 1:
+        wet = array * envelope
+    else:
+        wet = array * envelope[:, None]
+    
+    return normalize_audio((array * (1.0 - 0.2 * mix)) + (wet * (0.8 * mix)))
+
+
+def apply_bitcrush(audio: np.ndarray, amount: float) -> np.ndarray:
+    array = np.asarray(audio, dtype=np.float64)
+    mix = float(np.clip(amount, 0.0, 1.0))
+    if mix <= 0.0:
+        return array.copy()
+        
+    bits = 16.0 - (12.0 * mix)
+    steps = 2 ** bits
+    downsample_factor = 1 + int(10 * mix)
+    
+    wet = array.copy()
+    
+    if downsample_factor > 1:
+        if wet.ndim == 1:
+            wet = np.repeat(wet[::downsample_factor], downsample_factor)[:wet.shape[0]]
+            if wet.shape[0] < array.shape[0]:
+                wet = np.pad(wet, (0, array.shape[0] - wet.shape[0]), mode='edge')
+        else:
+            wet = np.repeat(wet[::downsample_factor, :], downsample_factor, axis=0)[:wet.shape[0], :]
+            if wet.shape[0] < array.shape[0]:
+                wet = np.pad(wet, ((0, array.shape[0] - wet.shape[0]), (0, 0)), mode='edge')
+                
+    wet = np.round(wet * steps) / steps
+    return normalize_audio((array * (1.0 - 0.6 * mix)) + (wet * (0.8 * mix)))
+
+
+def apply_phaser(audio: np.ndarray, sample_rate: int, amount: float) -> np.ndarray:
+    array = np.asarray(audio, dtype=np.float64)
+    mix = float(np.clip(amount, 0.0, 1.0))
+    if mix <= 0.0:
+        return array.copy()
+        
+    rate = 0.1 + (0.5 * mix)
+    phase = np.linspace(0.0, array.shape[0] / sample_rate, array.shape[0], endpoint=False)
+    lfo = 0.5 + 0.5 * np.sin(2.0 * np.pi * rate * phase)
+    
+    delay_samples = 1 + lfo * (sample_rate * 0.005 * mix)
+    
+    wet = np.empty_like(array)
+    block_size = 65536
+    for i in range(0, array.shape[0], block_size):
+        end = min(i + block_size, array.shape[0])
+        delay_chunk = delay_samples[i:end]
+        source_positions = np.arange(i, end, dtype=np.float64) - delay_chunk
+        source_positions = np.clip(source_positions, 0.0, array.shape[0] - 1)
+        base = np.floor(source_positions).astype(int)
+        frac = source_positions - base
+        next_idx = np.clip(base + 1, 0, array.shape[0] - 1)
+        
+        if array.ndim == 1:
+            wet[i:end] = ((1.0 - frac) * array[base]) + (frac * array[next_idx])
+        else:
+            wet[i:end] = ((1.0 - frac[:, None]) * array[base]) + (frac[:, None] * array[next_idx])
+
+    feedback = 0.3 + (0.4 * mix)
+    return normalize_audio(array + (wet * feedback))
+
+
+def apply_sub_bass(audio: np.ndarray, sample_rate: int, amount: float) -> np.ndarray:
+    array = np.asarray(audio, dtype=np.float64)
+    mix = float(np.clip(amount, 0.0, 1.0))
+    if mix <= 0.0:
+        return array.copy()
+        
+    def _octave_down(channel: np.ndarray) -> np.ndarray:
+        expanded = resample(channel, channel.shape[0] * 2)
+        return expanded[:channel.shape[0]]
+        
+    if array.ndim == 1:
+        sub = _octave_down(array)
+    else:
+        sub = np.column_stack([_octave_down(array[:, idx]) for idx in range(array.shape[1])])
+        
+    sub = apply_filter(sub, sample_rate, FilterMode.LOWPASS, 120.0 + (100.0 * (1.0-mix)))
+    sub = np.tanh(sub * 2.0)
+    
+    return normalize_audio((array * (1.0 - 0.1 * mix)) + (sub * (1.5 * mix)))
 
 
 def apply_autopan(audio: np.ndarray, sample_rate: int, amount: float) -> np.ndarray:

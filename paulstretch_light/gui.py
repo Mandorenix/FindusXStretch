@@ -63,7 +63,6 @@ from .recording import (
     list_audio_routing,
     merge_recent_takes,
     next_available_recording_path,
-    output_device_details,
     remove_recent_take,
     resolve_audio_backend,
     resolve_qt_output_device,

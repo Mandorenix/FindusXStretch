@@ -11,7 +11,7 @@ import soundfile as sf
 from PySide6.QtCore import QPoint, QPointF, Qt, QUrl
 from PySide6.QtGui import QDesktopServices, QWheelEvent
 from PySide6.QtMultimedia import QAudio
-from PySide6.QtWidgets import QApplication, QMessageBox, QTextBrowser
+from PySide6.QtWidgets import QApplication, QTextBrowser
 
 from paulstretch_light.gui import (
     STARTUP_SPLASH_VARIANT_PATHS,

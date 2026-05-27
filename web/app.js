@@ -34,7 +34,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const binds = [
         "stretch", "reverb", "shimmer",
         "lowpass", "drive", "texture", "granular", "motion",
-        "bloom", "delay", "chorus", "stereo_width", "autopan", "pitch_drift"
+        "bloom", "delay", "chorus", "stereo_width", "autopan", "pitch_drift",
+        "bitcrush", "sub_bass", "tremolo", "phaser"
     ];
     const ui = {};
     binds.forEach(b => {
@@ -109,11 +110,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Presets
     const presets = {
-        original: { stretch: 1, reverb: 0.0, shimmer: 0.0, lowpass: 12000, drive: 0.0, texture: 0.0, granular: 0.0, motion: 0.0, bloom: 0.0, delay: 0.0, chorus: 0.0, stereo_width: 1.0, autopan: 0.0, pitch_drift: 0.0, reverse: false, freeze: false },
-        default: { stretch: 4, reverb: 0.5, shimmer: 0.3, lowpass: 6000, drive: 0.0, texture: 0.0, granular: 0.0, motion: 0.0, bloom: 0.0, delay: 0.0, chorus: 0.0, stereo_width: 1.0, autopan: 0.0, pitch_drift: 0.0, reverse: false, freeze: false },
-        deep_ambient: { stretch: 12, reverb: 0.9, shimmer: 0.1, lowpass: 2000, drive: 0.1, texture: 0.2, granular: 0.0, motion: 0.1, bloom: 0.5, delay: 0.4, chorus: 0.2, stereo_width: 1.5, autopan: 0.3, pitch_drift: 0.1, reverse: false, freeze: false },
-        glitchy_tape: { stretch: 3, reverb: 0.2, shimmer: 0.0, lowpass: 4000, drive: 0.6, texture: 0.4, granular: 0.8, motion: 0.7, bloom: 0.0, delay: 0.2, chorus: 0.0, stereo_width: 0.8, autopan: 0.0, pitch_drift: 0.8, reverse: false, freeze: false },
-        shimmering_ice: { stretch: 8, reverb: 0.8, shimmer: 0.9, lowpass: 8000, drive: 0.0, texture: 0.5, granular: 0.2, motion: 0.4, bloom: 0.3, delay: 0.6, chorus: 0.5, stereo_width: 2.0, autopan: 0.5, pitch_drift: 0.0, reverse: false, freeze: false }
+        original: { stretch: 1, reverb: 0.0, shimmer: 0.0, lowpass: 12000, drive: 0.0, texture: 0.0, granular: 0.0, motion: 0.0, bloom: 0.0, delay: 0.0, chorus: 0.0, stereo_width: 1.0, autopan: 0.0, pitch_drift: 0.0, bitcrush: 0.0, sub_bass: 0.0, tremolo: 0.0, phaser: 0.0, reverse: false, freeze: false },
+        default: { stretch: 4, reverb: 0.5, shimmer: 0.3, lowpass: 6000, drive: 0.0, texture: 0.0, granular: 0.0, motion: 0.0, bloom: 0.0, delay: 0.0, chorus: 0.0, stereo_width: 1.0, autopan: 0.0, pitch_drift: 0.0, bitcrush: 0.0, sub_bass: 0.0, tremolo: 0.0, phaser: 0.0, reverse: false, freeze: false },
+        deep_ambient: { stretch: 12, reverb: 0.9, shimmer: 0.1, lowpass: 2000, drive: 0.1, texture: 0.2, granular: 0.0, motion: 0.1, bloom: 0.5, delay: 0.4, chorus: 0.2, stereo_width: 1.5, autopan: 0.3, pitch_drift: 0.1, bitcrush: 0.0, sub_bass: 0.4, tremolo: 0.2, phaser: 0.0, reverse: false, freeze: false },
+        glitchy_tape: { stretch: 3, reverb: 0.2, shimmer: 0.0, lowpass: 4000, drive: 0.6, texture: 0.4, granular: 0.8, motion: 0.7, bloom: 0.0, delay: 0.2, chorus: 0.0, stereo_width: 0.8, autopan: 0.0, pitch_drift: 0.8, bitcrush: 0.5, sub_bass: 0.0, tremolo: 0.0, phaser: 0.3, reverse: false, freeze: false },
+        shimmering_ice: { stretch: 8, reverb: 0.8, shimmer: 0.9, lowpass: 8000, drive: 0.0, texture: 0.5, granular: 0.2, motion: 0.4, bloom: 0.3, delay: 0.6, chorus: 0.5, stereo_width: 2.0, autopan: 0.5, pitch_drift: 0.0, bitcrush: 0.0, sub_bass: 0.0, tremolo: 0.4, phaser: 0.6, reverse: false, freeze: false }
     };
     
     const savedPresets = JSON.parse(localStorage.getItem('findusPresets') || '{}');
@@ -176,7 +177,12 @@ document.addEventListener("DOMContentLoaded", () => {
         updateSlider('chorus', (Math.random()).toFixed(2));
         updateSlider('stereo_width', (Math.random() * 2).toFixed(2));
         updateSlider('autopan', (Math.random()).toFixed(2));
+        updateSlider('autopan', (Math.random()).toFixed(2));
         updateSlider('pitch_drift', (Math.random()).toFixed(2));
+        updateSlider('bitcrush', (Math.random()).toFixed(2));
+        updateSlider('sub_bass', (Math.random()).toFixed(2));
+        updateSlider('tremolo', (Math.random()).toFixed(2));
+        updateSlider('phaser', (Math.random()).toFixed(2));
         reverseToggle.checked = Math.random() > 0.8;
         reverseToggle.dispatchEvent(new Event('change'));
         freezeToggle.checked = Math.random() > 0.9;
@@ -584,6 +590,14 @@ document.addEventListener("DOMContentLoaded", () => {
                     bloom_amount: layer.settings.bloom,
                     delay_amount: layer.settings.delay,
                     autopan_amount: layer.settings.autopan,
+                    bitcrush_amount: layer.settings.bitcrush,
+                    bitcrush_enabled: layer.settings.bitcrush > 0,
+                    sub_bass_amount: layer.settings.sub_bass,
+                    sub_bass_enabled: layer.settings.sub_bass > 0,
+                    tremolo_amount: layer.settings.tremolo,
+                    tremolo_enabled: layer.settings.tremolo > 0,
+                    phaser_amount: layer.settings.phaser,
+                    phaser_enabled: layer.settings.phaser > 0,
                     stereo_width: layer.settings.stereo_width,
                     reverse: layer.settings.reverse,
                     freeze_enabled: layer.settings.freeze,

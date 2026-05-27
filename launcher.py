@@ -82,6 +82,9 @@ class Launcher(tk.Tk):
                 ("Start FindusXStretch (Web)", self.run_app, "Startar den nya webbaserade (PWA) versionen av FindusXStretch i din webbläsare."),
                 ("Start Legacy App (Desktop)", self.run_legacy_app, "Startar den gamla Python Desktop-appen (Deprecated)."),
                 ("Deploy PWA (Upload)", self.deploy_pwa, "Laddar upp dina senaste ändringar till webben så de uppdateras på mobilen."),
+                ("Sync Mobil (Local WiFi)", self.sync_mobile_local, "Öppnar en lokal server och QR-kod så du kan testa appen på mobilen utan Netlify."),
+                ("Sync Mobil (HTTPS Tunnel)", self.sync_mobile_secure, "Skapar en säker tillfällig länk (HTTPS) så att du kan installera PWA:n lokalt på mobilen."),
+                ("Sync Mobil (ADB / Emulator)", self.sync_mobile_adb, "Kör PWA direkt i din anslutna Android-enhet/AVD via ADB med port-forwarding."),
                 ("Quick Start", self.quick_start, "Installerar bas-tillägg, kör tester och startar sedan appen."),
                 ("Python REPL", self.python_repl, "Öppnar en ren Python-tolk i ett nytt fönster för snabba tester."),
                 ("Open README", lambda: os.startfile("README.md"), "Öppnar projektets README-fil i standardredigeraren."),
@@ -275,7 +278,7 @@ class Launcher(tk.Tk):
         threading.Thread(target=task, daemon=True).start()
 
     def run_app(self):
-        self.log(f"> Starting FindusXStretch Web App...")
+        self.log("> Starting FindusXStretch Web App...")
         import webbrowser
         os.system(f"start cmd /c \"cd web && \"{self.python_cmd}\" -m http.server 8000\"")
         def open_browser():
@@ -285,8 +288,187 @@ class Launcher(tk.Tk):
             self.after(0, self.log, "[Browser opened for FindusXStretch]")
         threading.Thread(target=open_browser, daemon=True).start()
 
+    def sync_mobile_local(self):
+        self.log("> Starting Local Mobile Sync...")
+        def task():
+            import subprocess
+            try:
+                import qrcode
+                from PIL import Image, ImageTk
+            except ImportError:
+                self.after(0, self.log, "[INFO] Installerar qrcode och pillow för att visa QR-kod...")
+                subprocess.run(f'"{self.python_cmd}" -m pip install qrcode pillow', shell=True)
+                try:
+                    import qrcode
+                    from PIL import Image, ImageTk
+                except ImportError:
+                    self.after(0, self.log, "[ERROR] Kunde inte installera qrcode och pillow.")
+                    return
+
+            import socket
+            # Get local IP
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            try:
+                s.connect(('8.8.8.8', 80))
+                ip = s.getsockname()[0]
+            except Exception:
+                ip = '127.0.0.1'
+            finally:
+                s.close()
+
+            url = f"http://{ip}:8000"
+            self.after(0, self.log, f"\n[SERVER INFO]\nSurfa till följande adress på mobilen (samma WiFi):\n\n   {url}\n")
+            
+            # Start http server in a separate window
+            subprocess.Popen(f'start cmd /c "title Local Sync Server & cd web && \"{self.python_cmd}\" -m http.server 8000"', shell=True)
+
+            try:
+                qr = qrcode.QRCode(box_size=8, border=4)
+                qr.add_data(url)
+                qr.make(fit=True)
+                img = qr.make_image(fill_color="black", back_color="white")
+                
+                def show_qr():
+                    top = tk.Toplevel(self)
+                    top.title("Skanna med Mobilen")
+                    top.geometry("400x450")
+                    top.configure(bg="#212224")
+                    
+                    lbl = tk.Label(top, text="Skanna för att öppna på mobilen\n(Kräver samma WiFi)", font=self.header_font, bg="#212224", fg="#a9b7c6")
+                    lbl.pack(pady=10)
+                    
+                    tk_img = ImageTk.PhotoImage(img)
+                    img_lbl = tk.Label(top, image=tk_img, bg="#212224")
+                    img_lbl.image = tk_img # keep ref
+                    img_lbl.pack(pady=10)
+                    
+                    url_lbl = tk.Label(top, text=url, font=self.title_font, bg="#212224", fg="#5294e2")
+                    url_lbl.pack(pady=10)
+                    
+                self.after(0, show_qr)
+            except Exception as e:
+                self.after(0, self.log, f"[ERROR] Kunde inte skapa QR-kod: {e}")
+            
+        threading.Thread(target=task, daemon=True).start()
+
+    def sync_mobile_secure(self):
+        self.log("> Starting Secure Mobile Sync (HTTPS Tunnel)...")
+        def task():
+            import subprocess
+            import re
+            
+            try:
+                import qrcode
+                from PIL import Image, ImageTk
+            except ImportError:
+                self.after(0, self.log, "[INFO] Installerar qrcode och pillow för att visa QR-kod...")
+                subprocess.run(f'"{self.python_cmd}" -m pip install qrcode pillow', shell=True)
+                try:
+                    import qrcode
+                    from PIL import Image, ImageTk
+                except ImportError:
+                    self.after(0, self.log, "[ERROR] Kunde inte installera qrcode och pillow.")
+                    return
+
+            # Start local HTTP server
+            subprocess.Popen(f'start cmd /c "title Local Sync Server & cd web && \"{self.python_cmd}\" -m http.server 8000"', shell=True)
+
+            self.after(0, self.log, "[INFO] Skapar en säker HTTPS-tunnel (localhost.run)...")
+            
+            # Start SSH tunnel
+            # We use -o StrictHostKeyChecking=accept-new to avoid prompts
+            proc = subprocess.Popen('ssh -o StrictHostKeyChecking=accept-new -R 80:localhost:8000 nokey@localhost.run', shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+            
+            url = None
+            for line in proc.stdout:
+                # self.after(0, self.log, "Tunnel: " + line.strip()) # uncomment to debug ssh output
+                # Look for https://*.lhr.life
+                match = re.search(r'(https://[a-zA-Z0-9-]+\.lhr\.life)', line)
+                if match:
+                    url = match.group(1)
+                    break
+            
+            if not url:
+                self.after(0, self.log, "[ERROR] Kunde inte skapa tunnel. Har du 'ssh' installerat i Windows?")
+                return
+                
+            self.after(0, self.log, f"\n[SECURE SERVER INFO]\nSurfa till följande adress på mobilen:\n\n   {url}\n\n(Eftersom detta är HTTPS kan du nu 'Installera' appen på startskärmen!)\n")
+
+            try:
+                qr = qrcode.QRCode(box_size=8, border=4)
+                qr.add_data(url)
+                qr.make(fit=True)
+                img = qr.make_image(fill_color="black", back_color="white")
+                
+                def show_qr():
+                    top = tk.Toplevel(self)
+                    top.title("Skanna med Mobilen (Secure)")
+                    top.geometry("400x500")
+                    top.configure(bg="#212224")
+                    
+                    lbl = tk.Label(top, text="Skanna för att öppna på mobilen\n(Säker HTTPS - Går att installera!)", font=self.header_font, bg="#212224", fg="#a9b7c6")
+                    lbl.pack(pady=10)
+                    
+                    tk_img = ImageTk.PhotoImage(img)
+                    img_lbl = tk.Label(top, image=tk_img, bg="#212224")
+                    img_lbl.image = tk_img # keep ref
+                    img_lbl.pack(pady=10)
+                    
+                    url_lbl = tk.Label(top, text=url, font=self.title_font, bg="#212224", fg="#5294e2")
+                    url_lbl.pack(pady=10)
+                    
+                self.after(0, show_qr)
+            except Exception as e:
+                self.after(0, self.log, f"[ERROR] Kunde inte skapa QR-kod: {e}")
+            
+        threading.Thread(target=task, daemon=True).start()
+
+    def sync_mobile_adb(self):
+        self.log("> Starting ADB / Android Studio Sync...")
+        def task():
+            import subprocess
+            import os
+            
+            # Find ADB path
+            adb_cmd = "adb"
+            try:
+                subprocess.run(["adb", "version"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+            except (FileNotFoundError, subprocess.CalledProcessError):
+                localappdata = os.environ.get("LOCALAPPDATA", "")
+                adb_path = os.path.join(localappdata, "Android", "Sdk", "platform-tools", "adb.exe")
+                if os.path.exists(adb_path):
+                    adb_cmd = f'"{adb_path}"'
+                else:
+                    self.after(0, self.log, "[ERROR] Kunde inte hitta 'adb'. Vänligen se till att Android Studio SDK är installerat och enheten inkopplad.")
+                    return
+                    
+            # Check devices
+            proc = subprocess.run(f"{adb_cmd} devices", shell=True, stdout=subprocess.PIPE, text=True)
+            devices = [line.split()[0] for line in proc.stdout.splitlines() if line.strip() and not line.startswith("List of devices") and line.split()[-1] == "device"]
+            if not devices:
+                self.after(0, self.log, "[ERROR] Inga Android-enheter hittades via ADB. Starta en emulator (AVD) eller koppla in mobilen med USB Debugging!")
+                return
+                
+            self.after(0, self.log, f"[INFO] Hittade Android-enhet: {devices[0]}")
+
+            # Start local HTTP server
+            subprocess.Popen(f'start cmd /c "title Local Sync Server & cd web && \"{self.python_cmd}\" -m http.server 8000"', shell=True)
+
+            # Map ports
+            self.after(0, self.log, "[INFO] Vidarebefordrar port 8000 till Android-enheten (adb reverse)...")
+            subprocess.run(f"{adb_cmd} reverse tcp:8000 tcp:8000", shell=True)
+            
+            # Start Chrome on device
+            self.after(0, self.log, "[INFO] Öppnar appen i Android...")
+            # Use intent to open browser
+            subprocess.run(f'{adb_cmd} shell am start -a android.intent.action.VIEW -d "http://localhost:8000/"', shell=True)
+            
+            self.after(0, self.log, "\n[KLART!]\nKolla på din Android/Emulator! Eftersom Android nu laddar appen via 'localhost' klassas den som säker och du kan klicka på 'Installera/Lägg till på startskärmen' direkt!\n")
+
+        threading.Thread(target=task, daemon=True).start()
+
     def run_legacy_app(self):
-        self.log(f"> Starting legacy desktop app...")
+        self.log("> Starting legacy desktop app...")
         subprocess.Popen(f'"{self.python_cmd}" app.py', shell=True)
 
     def deploy_pwa(self):
@@ -309,7 +491,7 @@ class Launcher(tk.Tk):
         self.run_cmd(f'"{self.python_cmd}" -m venv .venv')
 
     def open_venv_shell(self):
-        os.system(f"start cmd /k \".venv\\Scripts\\activate.bat\"")
+        os.system("start cmd /k \".venv\\Scripts\\activate.bat\"")
         
     def python_repl(self):
         self.run_cmd(f'"{self.python_cmd}"', show_console=True)
