@@ -1,4 +1,4 @@
-const CACHE_NAME = 'findus-light-v2';
+const CACHE_NAME = 'findus-light-v3';
 const ASSETS = [
   './',
   './index.html',
@@ -31,8 +31,8 @@ self.addEventListener('fetch', (event) => {
         return networkResponse;
       })
       .catch(() => {
-        // If network fails (offline), return from cache
-        return caches.match(event.request);
+        // If network fails (offline), return from cache (ignoring query strings like ?v=2 or ?t=timestamp)
+        return caches.match(event.request, { ignoreSearch: true });
       })
   );
 });
